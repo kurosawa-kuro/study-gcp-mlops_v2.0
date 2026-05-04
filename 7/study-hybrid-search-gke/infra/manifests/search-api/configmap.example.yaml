@@ -1,0 +1,24 @@
+# AUTO-GENERATED from env/config/setting.yaml — do NOT edit by hand.
+# Run `make sync-configmap` to regenerate after changing setting.yaml.
+# `meili_base_url` is environment-specific (Cloud Run URL) — overlay
+# the real value before `make apply-manifests`.
+#
+# Phase 7 W2-8 完了後 ConfigMap は Vertex Vector Search / Feature
+# Online Store の resource ID / endpoint だけを持つ。`semantic_backend`
+# / `feature_fetcher_backend` のような backend 切替 selector は撤去済。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: search-api-config
+  namespace: search
+data:
+  project_id: "mlops-dev-a"
+  models_bucket: "mlops-dev-a-models"
+  meili_base_url: "https://meili-search-XXXXX-an.a.run.app"
+
+  vertex_vector_search_index_endpoint_id: ""
+  vertex_vector_search_deployed_index_id: ""
+
+  vertex_feature_online_store_id: ""
+  vertex_feature_view_id: ""
+  vertex_feature_online_store_endpoint: ""

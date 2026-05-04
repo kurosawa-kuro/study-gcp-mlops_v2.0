@@ -1,0 +1,68 @@
+# =============================================================================
+# 非クレデンシャルのみ（設計上ここに秘密を書かない）
+# =============================================================================
+# パスワード・API 鍵・トークン実体は env/secret/credential.yaml（gitignore）または
+# Secret Manager。setting に秘密を足すのは設計違反。エージェントはこの前提を誤読しないこと。
+#
+# ローカル開発・Makefile 用（リポジトリにコミットする値）。
+#
+# **GCP 本番相当の正本ではない**: Cloud Composer / GKE 上の composer-runner Pod は
+# **Terraform の google_composer_environment.env_variables + Composer が注入する
+# GCP_PROJECT** が唯一のソースである。死守ラインや live 障害を「setting.yaml を
+# 直せばよい」で解決しようとしない — 不足キーは Terraform の Composer モジュールへ
+# 追加し tf apply する。
+#
+# - Python（ノート PC）: scripts/_common.py が読み込み、env 未設定時の DEFAULTS に使う
+# - Makefile: awk で PROJECT_ID 等に流し込む
+#
+# 既存値を変えた場合の影響範囲:
+#   project_id     — 全 gcloud / bq 呼び出し、Terraform var, infra/main.tf
+#   region         — Cloud Run / Artifact Registry / Cloud Build / BQ ロケーション
+#   api_service    — GKE Deployment 名 (`kubectl set image deployment/<name>`)
+#   artifact_repo  — Artifact Registry リポジトリ ID (`<region>-docker.pkg.dev/<proj>/<repo>`)
+#   このファイルは scripts/_common.py の簡易 parser 前提:
+#                  top-level の flat `key: value` と block-style list のみ対応
+#
+# （繰り返し）クレデンシャル実体は **ここに置かない**。`env/secret/credential.yaml`
+# または Secret Manager。参照 ID（例: meili_master_key_secret_id）は非秘密としてここ可。
+
+project_id: mlops-dev-a
+region: asia-northeast1
+api_service: search-api
+artifact_repo: mlops
+vertex_location: asia-northeast1
+meili_service: meili-search
+meili_master_key_secret_id: meili-master-key
+meili_impersonate_service_account: sa-api@mlops-dev-a.iam.gserviceaccount.com
+local_api_port: 8000
+local_encoder_port: 18081
+local_reranker_port: 18082
+local_reranker_model_path: /tmp/hybrid-search-cloud-smoke-model.txt
+# Phase 7 は KServe serving であり Vertex Endpoint は deploy しない。
+# Vertex Endpoint shell の display_name は `enable_vertex_endpoint_shell=true`
+# の時にのみ使われ、値は `infra/terraform/environments/dev/main.tf` の
+# module 呼び出しで literal 指定 (`property-{encoder,reranker}-endpoint`)。
+# setting.yaml への二重宣言は値の drift を生むため置かない。
+pipeline_root_bucket: mlops-dev-a-pipeline-root
+pipeline_template_gcs_path: gs://mlops-dev-a-pipeline-root/templates
+
+# Terraform var に流す識別子。GITHUB_REPO は WIF の `attribute.repository`
+# 制約に焼き込まれる (タイポすると CI が auth できなくなる)。ONCALL_EMAIL は
+# monitoring alert policy の通知先 — `@` を含まないと variables.tf の
+# validation で落ちる。`make tf-plan` / deploy-all は setting.yaml 経由で
+# `-var=oncall_email=...` を組み立てる。学習用途ではプレースホルダでよい。
+github_repo: kurosawa-kuro/study-gcp-mlops-hybrid-search-cloud-v2.0
+oncall_email: admin@admin.com
+
+# sa-api impersonate 用の開発者ユーザ (Terraform が Token Creator を bind)。
+# 実運用では個人メール、学習ではプレースホルダでよい。
+admin_user_emails:
+  - admin@admin.com
+
+# Dataform — pipeline/data_job/dataform/workflow_settings.yaml は本ファイルから自動生成される
+# (Makefile の `make sync-dataform-config` を実行)。Dataform の YAML スキーマは
+# 固定キー (defaultProject / defaultLocation 等) なので、こちらに対応する値を
+# 並べる方針。drift は tests/test_dataform_workflow_settings.py が検知する。
+dataform_default_dataset: feature_mart
+dataform_default_assertion_dataset: feature_mart_assertions
+dataform_core_version: 3.0.0

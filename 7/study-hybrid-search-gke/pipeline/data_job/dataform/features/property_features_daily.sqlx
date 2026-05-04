@@ -1,0 +1,67 @@
+config {
+  type: "table",
+  schema: "feature_mart",
+  name: "property_features_daily",
+  description: "Daily ranker features: rent / walk_min / age_years / area_m2 (property basics) plus ctr / fav_rate / inquiry_rate (28-day behavioral aggregates) and popularity_score (fallback when booster unavailable). Serving parity: common/src/common/feature_engineering.py::build_ranker_features.",
+  tags: ["properties", "feature", "ranker"],
+  bigquery: {
+    partitionBy: "event_date",
+    clusterBy: ["property_id"],
+    requirePartitionFilter: false
+  }
+}
+
+WITH window_bounds AS (
+  SELECT
+    CURRENT_DATE("Asia/Tokyo") AS event_date,
+    TIMESTAMP(DATE_SUB(CURRENT_DATE("Asia/Tokyo"), INTERVAL 28 DAY)) AS window_start
+),
+impressions AS (
+  SELECT
+    pid AS property_id,
+    COUNT(*) AS impression_count
+  FROM ${ref("search_logs")} sl,
+    UNNEST(sl.result_property_ids) AS pid,
+    window_bounds
+  WHERE sl.ts >= window_bounds.window_start
+  GROUP BY pid
+),
+actions AS (
+  SELECT
+    property_id,
+    COUNTIF(action = "click")    AS click_count,
+    COUNTIF(action = "favorite") AS favorite_count,
+    COUNTIF(action = "inquiry")  AS inquiry_count
+  FROM ${ref("feedback_events")} fe, window_bounds
+  WHERE fe.ts >= window_bounds.window_start
+  GROUP BY property_id
+),
+property_basics AS (
+  SELECT
+    property_id,
+    rent,
+    walk_min,
+    age_years,
+    area_m2
+  FROM ${ref("properties_cleaned")}
+)
+SELECT
+  wb.event_date,
+  TIMESTAMP(wb.event_date) AS feature_timestamp,
+  pb.property_id,
+  pb.rent,
+  pb.walk_min,
+  pb.age_years,
+  pb.area_m2,
+  SAFE_DIVIDE(a.click_count,    i.impression_count) AS ctr,
+  SAFE_DIVIDE(a.favorite_count, i.impression_count) AS fav_rate,
+  SAFE_DIVIDE(a.inquiry_count,  i.impression_count) AS inquiry_rate,
+  (
+    0.4 * COALESCE(SAFE_DIVIDE(a.click_count,    i.impression_count), 0) +
+    0.2 * COALESCE(SAFE_DIVIDE(a.favorite_count, i.impression_count), 0) +
+    0.2 * COALESCE(SAFE_DIVIDE(a.inquiry_count,  i.impression_count), 0)
+  ) AS popularity_score
+FROM property_basics pb
+CROSS JOIN window_bounds wb
+LEFT JOIN impressions i USING (property_id)
+LEFT JOIN actions     a USING (property_id)

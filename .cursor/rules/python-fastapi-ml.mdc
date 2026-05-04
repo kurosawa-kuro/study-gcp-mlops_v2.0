@@ -1,0 +1,25 @@
+---
+description: Python — FastAPI, ports/adapters, checks (phase-aware)
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python (phase-aware)
+
+## Tooling
+
+- **Phase 7** (`7/study-hybrid-search-gke`): Python **3.12+**, `uv`, **ruff** + **ruff format**, **mypy** (strict), **pytest**. Run `make sync` then `make check` from that phase root after substantive edits.
+- Other phases may use Docker Compose or different Python versions — **always confirm** in that phase’s `CLAUDE.md` and `make help`.
+
+## Architecture
+
+- Respect **Port / Adapter** boundaries: `core → ports ← adapters`. **Composition / DI wiring** belongs in the phase’s composition root (e.g. Phase 7 `app/composition_root.py`), not scattered in handlers.
+- Services depend on **protocols only**; avoid importing concrete adapters from domain/core layers. Follow `scripts/ci/layers.py` / `make check-layers` rules when the phase provides them.
+
+## Feature changes (Phase 4+ hybrid search)
+
+- When changing **ranker / feature** definitions, keep **six-way parity** in one change set when applicable (Dataform SQL, `build_ranker_features`, `FEATURE_COLS_RANKER`, Terraform `ranking_log.features`, monitoring SQL, Vertex Feature Group features). See Phase 7 `CLAUDE.md` “Feature parity invariant”.
+
+## Style
+
+- Prefer explicit **type hints**, clear names, and **English** identifiers / comments to match the existing codebase.

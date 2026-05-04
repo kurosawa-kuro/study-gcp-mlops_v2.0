@@ -1,0 +1,25 @@
+config {
+  type: "view",
+  schema: "feature_mart",
+  name: "properties_cleaned",
+  description: "Cleaned property master. Coerces NULL-safe numeric ranges, clamps walk_min/age_years to non-negative. Keeps text columns intact for the embedding-job to read.",
+  tags: ["properties", "staging"]
+}
+
+SELECT
+  property_id,
+  title,
+  description,
+  city,
+  ward,
+  COALESCE(rent, 0)            AS rent,
+  COALESCE(management_fee, 0)  AS management_fee,
+  layout,
+  CAST(area_m2 AS FLOAT64)     AS area_m2,
+  GREATEST(COALESCE(age_years, 0), 0) AS age_years,
+  GREATEST(COALESCE(walk_min, 0), 0)  AS walk_min,
+  COALESCE(pet_ok, FALSE)      AS pet_ok,
+  created_at,
+  updated_at
+FROM ${ref("properties")}
+WHERE property_id IS NOT NULL

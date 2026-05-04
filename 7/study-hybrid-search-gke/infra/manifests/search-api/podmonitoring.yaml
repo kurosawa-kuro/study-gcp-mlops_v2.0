@@ -1,0 +1,14 @@
+# GKE Managed Prometheus (PodMonitoring CRD)
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: search-api
+  namespace: search
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: search-api
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics

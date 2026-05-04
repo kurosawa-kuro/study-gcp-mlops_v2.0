@@ -1,0 +1,304 @@
+/* Lime accent + pure-black dark theme override (admin.css は violet ベースのため上書き) */
+
+:root {
+  --lime-50:  #f4ffe3;
+  --lime-100: #e6ffbd;
+  --lime-200: #d3fc88;
+  --lime-300: #bdf358;
+  --lime-400: #a3e635;
+  --lime-500: #84cc16;
+  --lime-600: #65a30d;
+  --lime-700: #4d7c0f;
+  --lime-800: #365314;
+  --lime-900: #1a2e05;
+  --lime-950: #0e1a02;
+}
+
+/* admin.css の --violet-* を lime に差し替え、既存スタイルを流用 */
+[data-theme="dark"],
+[data-theme="light"] {
+  --violet-50:  var(--lime-50);
+  --violet-100: var(--lime-100);
+  --violet-200: var(--lime-200);
+  --violet-300: var(--lime-300);
+  --violet-400: var(--lime-400);
+  --violet-500: var(--lime-400);
+  --violet-600: var(--lime-500);
+  --violet-700: var(--lime-600);
+  --violet-800: var(--lime-700);
+  --violet-900: var(--lime-800);
+  --violet-950: var(--lime-900);
+}
+
+/* ダーク前提 — 背景は黒系、テキストは白系 */
+[data-theme="dark"] {
+  --pico-background-color: #000;
+  --pico-color: #f5f5f5;
+  --pico-h1-color: #fff;
+  --pico-h2-color: #fff;
+  --pico-h3-color: #fff;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] .admin-wrapper {
+  background: #000;
+  color: #f5f5f5;
+}
+
+[data-theme="dark"] .admin-sidebar {
+  background: #0a0a0a;
+  border-right: 1px solid #1f1f1f;
+}
+
+[data-theme="dark"] .admin-header {
+  background: rgba(0, 0, 0, 0.85);
+  border-bottom: 1px solid #1f1f1f;
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .ml-card {
+  background: #0f0f0f;
+  border: 1px solid #222;
+  border-radius: 10px;
+}
+
+/* --- プロジェクト固有のレイアウト --- */
+.ml-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ml-card {
+  padding: 1.5rem;
+}
+
+.ml-card-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+}
+
+.ml-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .ml-grid { grid-template-columns: 1fr; }
+}
+
+.ml-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ml-field label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.ml-field input {
+  padding: 0.55rem 0.75rem;
+  background: #000;
+  color: #f5f5f5;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.ml-field input:focus {
+  outline: none;
+  border-color: var(--lime-400);
+  box-shadow: 0 0 0 2px rgba(163, 230, 53, 0.15);
+}
+
+.ml-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.ml-btn {
+  padding: 0.6rem 1.5rem;
+  background: var(--lime-400);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ml-btn:hover { background: var(--lime-300); }
+.ml-btn:active { background: var(--lime-500); }
+
+.ml-result {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  display: none;
+  border: 1px solid #222;
+  background: #0a0a0a;
+}
+
+.ml-result.show { display: block; }
+.ml-result.error { border-color: #5c1f1f; background: #1a0a0a; }
+.ml-result .price { font-size: 1.8rem; font-weight: 700; color: var(--lime-400); }
+.ml-result.error .price { color: #ef4444; }
+.ml-result .unit { font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem; }
+
+.ml-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.ml-metric {
+  padding: 1.25rem;
+  background: #0a0a0a;
+  border: 1px solid #222;
+  border-radius: 8px;
+}
+
+.ml-metric .label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ml-metric .value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--lime-400);
+  margin-top: 0.4rem;
+}
+
+.ml-run-id {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #080808;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ml-empty {
+  text-align: center;
+  padding: 2rem 0;
+  color: #9ca3af;
+}
+
+.ml-empty code {
+  color: var(--lime-400);
+  background: #0a0a0a;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.ml-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.ml-page-header h1 {
+  font-size: 1.6rem;
+  color: #fff;
+  margin: 0;
+}
+
+.ml-page-header .sub {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.ml-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ml-tab {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  background: #0a0a0a;
+  border: 1px solid #222;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.ml-tab:hover { border-color: var(--lime-500); color: #fff; }
+.ml-tab.active { background: var(--lime-400); color: #0a0a0a; border-color: var(--lime-400); font-weight: 600; }
+
+.ml-meta {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.ml-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #222;
+  border-radius: 8px;
+  background: #080808;
+}
+
+.ml-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ml-table thead th {
+  position: sticky;
+  top: 0;
+  background: #111;
+  color: #d1d5db;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid #2a2a2a;
+  white-space: nowrap;
+}
+
+.ml-table tbody td {
+  padding: 0.45rem 0.8rem;
+  border-bottom: 1px solid #1a1a1a;
+  color: #e5e7eb;
+  white-space: nowrap;
+}
+
+.ml-table tbody tr:hover td { background: #0d0d0d; }
+
+.ml-table td.target {
+  color: var(--lime-400);
+  font-weight: 600;
+}
+
+.ml-table th.target {
+  color: var(--lime-400);
+}

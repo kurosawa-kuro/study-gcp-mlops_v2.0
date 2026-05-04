@@ -1,0 +1,37 @@
+# property-reranker — LightGBM lambdarank via MLServer (KServe built-in LightGBM runtime)
+#
+# ランタイム選定メモ:
+# - 第一候補: MLServer LightGBM runtime (公式 KServe supported)
+# - 出力形状 (ranker score の配列) と Phase 5 reranker 契約の整合性は
+#   `scripts/deploy/kserve_models.py` のデプロイ後に疎通で確認
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: property-reranker
+  namespace: kserve-inference
+  annotations:
+    serving.kserve.io/deploymentMode: "RawDeployment"
+spec:
+  predictor:
+    serviceAccountName: reranker
+    # 学習リポ最小スペック方針 (docs/tasks/TASKS_ROADMAP.md §7)。
+    # LightGBM lambdarank model.txt は 5〜10 KB で、MLServer プロセス自体が
+    # 200〜400 MB 常駐するだけ。250m/512Mi requests で十分余裕がある。
+    # Production 化時は User 判断で 500m/1Gi + maxReplicas=5 に戻す。
+    minReplicas: 1
+    maxReplicas: 1
+    model:
+      modelFormat:
+        name: lightgbm
+      # GCS 上の model.txt を MLServer が直接読む
+      # (Vertex Model Registry の artifact URI を scripts が書き戻す)
+      storageUri: "gs://mlops-dev-a-models/lgbm/latest"
+      resources:
+        # Autopilot general-purpose class の min (250m / 512Mi) に合わせる。
+        # memory:cpu = 2:1 (1:1 〜 6.5:1 制約内)。
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "1"
+          memory: "1Gi"

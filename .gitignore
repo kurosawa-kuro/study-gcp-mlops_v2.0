@@ -1,0 +1,82 @@
+# =============================================================================
+# Repository-root .gitignore.
+#
+# Phase 4-7 は各 phase 配下に独自の .gitignore を持つ (canonical)。本ファイルは:
+#   - Phase 1/2/3 (独自 .gitignore なし) のフォールバック
+#   - 全 phase 共通の生成物 / IDE / OS artifact
+# のみカバーする。phase 個別の細かい ignore は各 phase の .gitignore で。
+# =============================================================================
+
+# ----- Python ランタイム生成物 -----
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.tox/
+**/.nox/
+**/.ipynb_checkpoints/
+
+# ----- 仮想環境 / uv -----
+**/.venv/
+**/venv/
+**/.uv/
+
+# ----- カバレッジ / テスト生成物 -----
+**/.coverage
+**/.coverage.*
+**/coverage.xml
+**/htmlcov/
+
+# ----- ビルド成果物 / 学習成果物 / 動作ログ -----
+**/build/
+**/dist/
+**/logs/
+**/artifacts/
+**/*.log
+**/.cache/
+
+# ----- ML artifact / モデル / 実験トラッキング -----
+**/models/
+**/wandb/
+**/mlruns/
+
+# ----- 環境変数 / シークレット (commit 厳禁) -----
+**/.env
+**/.env.*
+!**/.env.example
+**/.envrc
+**/credential.yaml
+**/credentials.json
+**/service-account*.json
+# Defense-in-depth: WIF 採用のため SA key は本来存在しないが、誤投下対策として弾く
+**/*-credentials.json
+**/*-credentials-*.json
+**/*.sa-key.json
+**/.df-credentials.json
+# env/secret/ はローカル開発用クレデンシャル置き場。README のみコミットする
+**/env/secret/*
+!**/env/secret/README.md
+
+# ----- Terraform 個別 state / plan / vars -----
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/tfplan
+# tfvars は project ID / IP / secret を含むことがあるので必ずローカル限定
+**/*.tfvars
+**/*.tfvars.json
+# ※ infra/.terraform.lock.hcl は commit 必須なので ignore しない
+
+# ----- IDE / OS -----
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ----- Claude Code / その他ローカル状態 -----
+.claude/local/

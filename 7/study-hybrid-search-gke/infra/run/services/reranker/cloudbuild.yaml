@@ -1,0 +1,29 @@
+# Cloud Build for the Vertex CPR LightGBM reranker server (`ml/serving/reranker.py`).
+# Phase 7 deploys this image as a separate Pod in `kserve-inference` namespace
+# (NOT via KServe ISVC) so /search?explain=true can call its `/explain` route
+# for TreeSHAP attributions. The KServe stock LightGBM v2 runtime does NOT
+# support attributions — see B19 + Run 2 docs.
+#
+# Substitution `_IMAGE_URI` is the AR target with immutable tag (matches
+# encoder/search_api conventions so `scripts.deploy.build_kserve_images`
+# can use a single submit code path).
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=infra/run/services/reranker/Dockerfile
+      - --tag=${_IMAGE_URI}
+      - .
+
+images:
+  - ${_IMAGE_URI}
+
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
+
+substitutions:
+  _IMAGE_URI: ""

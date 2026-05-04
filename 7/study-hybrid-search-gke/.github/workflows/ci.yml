@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-typecheck-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [ruff, mypy, pytest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-env
+
+      - name: Ruff (lint + format check)
+        if: matrix.check == 'ruff'
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Mypy
+        if: matrix.check == 'mypy'
+        run: uv run mypy app ml pipeline
+
+      - name: Pytest
+        if: matrix.check == 'pytest'
+        run: uv run pytest --cov=app --cov=ml --cov=pipeline --cov-report=term
+
+  dataform-check:
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-env
+      - name: Generate Dataform settings from env/config/setting.yaml
+        run: uv run python -m scripts.ci.sync_dataform
+      - name: Verify Dataform settings present
+        run: test -f pipeline/data_job/dataform/workflow_settings.yaml
+      # Dataform CLI compile currently needs a service account. Gate on WIF in deploy-dataform.yml.

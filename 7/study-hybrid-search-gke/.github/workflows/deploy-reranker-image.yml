@@ -1,0 +1,52 @@
+name: Deploy Reranker Image
+
+# Phase 10: builds the Vertex AI reranker CPR container image and pushes to
+# Artifact Registry. Endpoint deployment is handled by the KFP train_pipeline
+# (register_reranker component) or scripts/ops/promote.py — this workflow
+# only refreshes the image.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ml/serving/**
+      - ml/data/feature_engineering/**
+      - ml/registry/**
+      - infra/run/services/reranker/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/deploy-reranker-image.yml
+      - .github/actions/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-northeast1
+  PROJECT_ID: mlops-dev-a
+  REPO: mlops
+  IMAGE: property-reranker
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          configure_docker: "true"
+
+      - uses: ./.github/actions/build-and-push
+        with:
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          repo: ${{ env.REPO }}
+          image: ${{ env.IMAGE }}
+          dockerfile: infra/run/services/reranker/Dockerfile

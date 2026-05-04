@@ -1,0 +1,17 @@
+name: Setup Python environment (uv)
+description: Install uv, pin Python 3.12, and sync the workspace + dev deps.
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v3
+      with:
+        version: "0.5.4"
+
+    - name: Set up Python 3.12
+      shell: bash
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      shell: bash
+      run: uv sync --all-packages --dev

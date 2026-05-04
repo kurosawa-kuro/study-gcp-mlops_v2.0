@@ -1,0 +1,32 @@
+<article class="panel admin-card">
+  <div class="admin-card__body">
+  <div class="admin-section-heading">
+    <div>
+      <p class="eyebrow">Feedback</p>
+      <h2>クリックフィードバック</h2>
+    </div>
+    <p class="section-copy">検索結果から property_id を選び、`/feedback` の疎通とランキングログ連携を確認します。</p>
+  </div>
+  <form id="feedback-form" onsubmit="event.preventDefault();">
+    <div class="grid">
+      <label>
+        property_id
+        <input id="fb-pid" type="text" required>
+      </label>
+      <label>
+        action
+        <select id="fb-action">
+          <option value="click" selected>click</option>
+          <option value="favorite">favorite</option>
+          <option value="inquiry">inquiry</option>
+        </select>
+      </label>
+    </div>
+    <div class="action-row">
+      <button id="feedback-btn" type="submit">送信</button>
+      <p class="search-state">検索後に上位物件を選ぶと `property_id` を自動入力します。</p>
+    </div>
+  </form>
+  <pre id="fb-result"></pre>
+  </div>
+</article>

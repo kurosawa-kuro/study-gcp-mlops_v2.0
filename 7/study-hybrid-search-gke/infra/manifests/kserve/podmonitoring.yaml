@@ -1,0 +1,27 @@
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: kserve-inference
+  namespace: kserve-inference
+spec:
+  selector:
+    matchLabels:
+      serving.kserve.io/inferenceservice: property-encoder
+  endpoints:
+    - port: kserve-container
+      interval: 30s
+      path: /metrics
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: kserve-inference-reranker
+  namespace: kserve-inference
+spec:
+  selector:
+    matchLabels:
+      serving.kserve.io/inferenceservice: property-reranker
+  endpoints:
+    - port: kserve-container
+      interval: 30s
+      path: /metrics

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}開発者検索 · ハイブリッド検索 UI{% endblock %}
+{% block page_title %}開発者検索{% endblock %}
+{% block page_copy %}lexical、semantic、rerank の各系統が効いているかを確認するための検証画面です。{% endblock %}
+
+{% block content %}
+  <section id="search-app" class="admin-content search-shell" data-page-mode="dev">
+    {% include "_search_form.html" %}
+    {% include "_search_results.html" %}
+    {% include "_feedback_panel.html" %}
+
+    <article class="panel admin-card">
+      <div class="admin-card__body">
+      <div class="admin-section-heading">
+        <div>
+          <p class="eyebrow">Model Info</p>
+          <h2>現在のモデル / 設定状態</h2>
+        </div>
+        <p class="section-copy">`/model/info` を呼び、現行の feature flag と model wiring を確認します。</p>
+      </div>
+      <div class="action-row">
+        <button id="data-btn" type="button">再読込</button>
+        <p class="search-state">search 実行前の配線確認にも使えます。</p>
+      </div>
+      <div class="table-scroll">
+      <table id="data-card" class="admin-table" hidden>
+        <tbody id="data-rows"></tbody>
+      </table>
+      </div>
+      </div>
+    </article>
+  </section>
+
+  <script src="/static/js/search_ui.js"></script>
+  <script>
+    window.HybridSearchUI.init({
+      rootId: "search-app",
+      mode: "dev",
+    });
+  </script>
+{% endblock %}

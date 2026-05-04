@@ -1,0 +1,64 @@
+name: study-ml-app-pipeline
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: study-ml-app-pipeline-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mlpipeline
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d mlpipeline"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  seed:
+    build:
+      context: .
+      dockerfile: infra/run/jobs/trainer/Dockerfile
+    volumes:
+      - ./env/secret:/app/env/secret:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python", "-m", "pipeline.data_job.main"]
+
+  trainer:
+    build:
+      context: .
+      dockerfile: infra/run/jobs/trainer/Dockerfile
+    volumes:
+      - ./ml/registry/artifacts:/app/ml/registry/artifacts
+      - ./artifacts:/app/artifacts
+      - ./env/secret:/app/env/secret:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    command: ["python", "-m", "pipeline.training_job.main"]
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/run/services/api/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./env/secret:/app/env/secret:ro
+      - ./ml/registry/artifacts:/app/ml/registry/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      trainer:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:

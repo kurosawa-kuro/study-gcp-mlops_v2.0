@@ -1,0 +1,57 @@
+name: Deploy Dataform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pipeline/data_job/dataform/**
+      - .github/workflows/deploy-dataform.yml
+      - .github/actions/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-northeast1
+  PROJECT_ID: mlops-dev-a
+  REPOSITORY: hybrid-search-cloud
+
+jobs:
+  push-definitions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: ./.github/actions/setup-python-env
+
+      - name: Generate dataform workflow_settings from env/config/setting.yaml
+        run: uv run python -m scripts.ci.sync_dataform
+
+      - name: Install Dataform CLI
+        run: npm i -g @dataform/cli@^3.0.0
+
+      - name: Compile
+        working-directory: pipeline/data_job/dataform
+        run: dataform compile
+
+      # Dataform git-connected repositories pull from GitHub on schedule — if the
+      # connection is set up, pushing to `main` is enough. If not, trigger a run here:
+      - name: Trigger scheduled run
+        run: |
+          curl -sSf -X POST \
+            -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+            -H "Content-Type: application/json" \
+            "https://dataform.googleapis.com/v1beta1/projects/${{ env.PROJECT_ID }}/locations/${{ env.REGION }}/repositories/${{ env.REPOSITORY }}/compilationResults" \
+            -d '{"gitCommitish":"main"}'

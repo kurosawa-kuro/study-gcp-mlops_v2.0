@@ -1,0 +1,68 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/**
+      - ml/**
+      - pyproject.toml
+      - uv.lock
+      - infra/manifests/**
+      - .github/workflows/deploy-api.yml
+      - .github/actions/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-northeast1
+  PROJECT_ID: mlops-dev-a
+  REPO: mlops
+  SERVICE: search-api
+  NAMESPACE: search
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          configure_docker: "true"
+
+      - uses: ./.github/actions/build-and-push
+        id: build
+        with:
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          repo: ${{ env.REPO }}
+          image: ${{ env.SERVICE }}
+          dockerfile: infra/run/services/search_api/Dockerfile
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get kubeconfig
+        run: |
+          gcloud container clusters get-credentials ${{ vars.GKE_CLUSTER_NAME }} \
+            --region ${{ env.REGION }} --project ${{ env.PROJECT_ID }}
+
+      - name: Roll search-api image
+        run: |
+          kubectl set image \
+            deployment/${{ env.SERVICE }} \
+            ${{ env.SERVICE }}=${{ steps.build.outputs.image_uri }} \
+            --namespace ${{ env.NAMESPACE }}
+          kubectl rollout status \
+            deployment/${{ env.SERVICE }} \
+            --namespace ${{ env.NAMESPACE }} \
+            --timeout=300s

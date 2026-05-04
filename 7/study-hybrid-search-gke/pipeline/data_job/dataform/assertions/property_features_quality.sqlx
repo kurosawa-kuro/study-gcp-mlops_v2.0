@@ -1,0 +1,19 @@
+config {
+  type: "assertion",
+  schema: "feature_mart_assertions",
+  name: "property_features_quality",
+  description: "Row-level quality gate for ranker feature mart. Any returned row fails the assertion.",
+  tags: ["properties", "assertion", "ranker"],
+  dependencies: ["property_features_daily"]
+}
+
+SELECT *
+FROM ${ref("property_features_daily")}
+WHERE
+     property_id IS NULL
+  OR rent IS NULL OR rent < 0
+  OR walk_min IS NULL OR walk_min < 0 OR walk_min > 120
+  OR age_years IS NULL OR age_years < 0 OR age_years > 150
+  OR (ctr IS NOT NULL AND (ctr < 0 OR ctr > 1))
+  OR (fav_rate IS NOT NULL AND (fav_rate < 0 OR fav_rate > 1))
+  OR (inquiry_rate IS NOT NULL AND (inquiry_rate < 0 OR inquiry_rate > 1))

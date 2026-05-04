@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}学習データ · ハイブリッド検索 UI{% endblock %}
+{% block page_title %}学習データ{% endblock %}
+{% block page_copy %}BigQuery 上の学習用テーブル preview を admin template の table/card で確認します。{% endblock %}
+
+{% block content %}
+  <section class="admin-content admin-stack">
+  <article class="panel admin-card">
+    <div class="admin-card__body action-row">
+      <button id="data-btn" type="button" onclick="loadData()">再読込</button>
+      <p id="data-meta" class="search-state">BigQuery から sample rows を取得します。</p>
+    </div>
+  </article>
+
+  <section id="data-tables" class="admin-stack"></section>
+  </section>
+
+<script>
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function renderRow(cells) {
+    return "<tr>" + cells.map((v) => `<td>${escapeHtml(v)}</td>`).join("") + "</tr>";
+  }
+
+  function renderTableCard(table) {
+    const latest = table.latest_marker ? `<p class="search-state">latest=${escapeHtml(table.latest_marker)}</p>` : "";
+    const head = table.columns.map((col) => `<th>${escapeHtml(col)}</th>`).join("");
+      const body = (table.rows || []).map((row) => renderRow(table.columns.map((col) => row[col] ?? ""))).join("");
+      return `
+      <article class="panel admin-card">
+        <div class="admin-card__body">
+        <div class="admin-section-heading">
+          <div>
+            <p class="eyebrow">${escapeHtml(table.key)}</p>
+            <h2>${escapeHtml(table.title)}</h2>
+          </div>
+          <p class="section-copy"><code>${escapeHtml(table.table_fqn)}</code></p>
+        </div>
+        <p class="section-copy">${escapeHtml(table.description)}</p>
+        ${latest}
+        <div class="admin-table-wrap table-scroll">
+          <table class="admin-table">
+            <thead><tr>${head}</tr></thead>
+            <tbody>${body || `<tr><td colspan="${table.columns.length}">rows not found</td></tr>`}</tbody>
+          </table>
+        </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function loadData() {
+    const btn = document.getElementById("data-btn");
+    const meta = document.getElementById("data-meta");
+    const root = document.getElementById("data-tables");
+    btn.setAttribute("aria-busy", "true");
+    meta.textContent = "読込中です...";
+    try {
+      const res = await fetch("/model/data");
+      const body = await res.json();
+      if (!res.ok) {
+        meta.textContent = `error: HTTP ${res.status}`;
+        root.innerHTML = `<article class="panel"><pre>${escapeHtml(JSON.stringify(body, null, 2))}</pre></article>`;
+        return;
+      }
+      const tables = body.tables || [];
+      meta.textContent = `${tables.length} table previews loaded`;
+      root.innerHTML = tables.map(renderTableCard).join("");
+    } catch (err) {
+      meta.textContent = `error: ${err}`;
+    } finally {
+      btn.removeAttribute("aria-busy");
+    }
+  }
+
+  loadData();
+</script>
+{% endblock %}

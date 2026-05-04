@@ -1,0 +1,47 @@
+# ---------------------------------------------------------------------------
+# Phase 5 debug: `.dockerignore` を「漏れなく context に残す」構成に緩めた。
+# 過去に `**/data/` や `infra/` の包括除外で `ml/data/` や `infra/run/jobs/*`
+# が巻き込まれて COPY 失敗 → container startup 失敗が連鎖したため。
+#
+# 現状は以下の 3 カテゴリのみ除外:
+# 1. Python / テスト / エディタの中間ファイル (サイズ圧縮、機能影響ゼロ)
+# 2. Terraform の local state / plan 出力 (巨大 + 秘密情報)
+# 3. `.git` / `.github` (Cloud Build が独自に扱う)
+#
+# 他の業務コード (app/, ml/, scripts/, infra/run/, pipeline/, env/, 等) は
+# 全て build context に残す。動作確認が全段落 PASS した後に段階的に
+# 除外を追加する。
+# ---------------------------------------------------------------------------
+
+# ----- Python bytecode / caches -----
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.venv/
+
+# ----- Terraform local state (巨大 / 秘密情報) -----
+**/.terraform/
+**/*.tfstate*
+
+# ----- VCS / CI metadata (Cloud Build が独自に処理) -----
+.git/
+.github/
+
+# ----- wandb の transient run log (W&B 削除後も残る) -----
+# Phase 7 Run 1: hatchling が `ml/wandb/wandb/wandb/latest-run/logs/`
+# を walk して symlink/transient log を含めようとし、ファイルが消える
+# タイミングで `FileNotFoundError` で fail する。W&B は教材から外した
+# (動作検証結果.md A1) ので run log 自体不要。
+ml/wandb/
+
+# ----- runs/ — local training run artifact (Phase 1-3 系) -----
+runs/
+
+# ----- 巨大な encoder cache (Phase 5/6/7 reuse 用、image には不要) -----
+.cache/
+**/encoder-assets/
+
+# ----- monitor / build log -----
+logs/

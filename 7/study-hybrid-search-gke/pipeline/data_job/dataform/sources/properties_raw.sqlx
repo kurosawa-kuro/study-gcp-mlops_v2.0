@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "mlops-dev-a",
+  schema: "raw",
+  name: "properties",
+  description: "Raw real-estate listings ingested upstream. PK=property_id. Fields: title / description / city / ward / rent / management_fee / layout / area_m2 / age_years / walk_min / pet_ok / created_at / updated_at."
+}

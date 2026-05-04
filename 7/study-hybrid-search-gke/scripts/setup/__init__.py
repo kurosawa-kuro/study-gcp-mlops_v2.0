@@ -1,0 +1,1 @@
+"""Canonical setup entrypoints."""

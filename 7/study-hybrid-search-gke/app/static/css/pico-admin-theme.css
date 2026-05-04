@@ -1,0 +1,121 @@
+:root {
+  color-scheme: dark;
+  --admin-bg-main: #0d0f10;
+  --admin-bg-sub: #15181a;
+  --admin-bg-elevated: #1c2023;
+  --admin-bg-header: #171a1d;
+  --admin-bg-hover: #20262a;
+  --admin-bg-active: #252c30;
+  --admin-bg-glass: rgba(28, 32, 35, 0.88);
+  --admin-border: #2a2f33;
+  --admin-border-strong: #394146;
+  --admin-text-main: #f8fbf4;
+  --admin-text-sub: #aab2b8;
+  --admin-text-muted: #6c757d;
+  --admin-lime-main: #a4ff00;
+  --admin-lime-accent: #c2ff52;
+  --admin-lime-soft: rgba(164, 255, 0, 0.1);
+  --admin-lime-glow: rgba(164, 255, 0, 0.2);
+  --admin-pink-main: #ff2d8f;
+  --admin-pink-soft: rgba(255, 45, 143, 0.16);
+  --admin-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+  --admin-radius: 18px;
+
+  --pico-background-color: var(--admin-bg-main);
+  --pico-color: var(--admin-text-main);
+  --pico-muted-color: var(--admin-text-sub);
+  --pico-muted-border-color: var(--admin-border);
+  --pico-primary: var(--admin-lime-main);
+  --pico-primary-hover: var(--admin-lime-accent);
+  --pico-primary-focus: var(--admin-lime-glow);
+  --pico-primary-inverse: #0b0d0e;
+  --pico-secondary: #23282c;
+  --pico-secondary-hover: #2c3438;
+  --pico-secondary-inverse: var(--admin-text-main);
+  --pico-form-element-background-color: var(--admin-bg-sub);
+  --pico-form-element-selected-background-color: var(--admin-lime-main);
+  --pico-form-element-border-color: var(--admin-border);
+  --pico-form-element-active-border-color: var(--admin-lime-main);
+  --pico-form-element-focus-color: var(--admin-lime-glow);
+  --pico-form-element-color: var(--admin-text-main);
+  --pico-form-element-placeholder-color: var(--admin-text-muted);
+  --pico-card-background-color: var(--admin-bg-sub);
+  --pico-card-border-color: var(--admin-border);
+  --pico-card-sectioning-background-color: var(--admin-bg-header);
+  --pico-dropdown-background-color: var(--admin-bg-elevated);
+  --pico-dropdown-border-color: var(--admin-border);
+  --pico-box-shadow: none;
+  --pico-border-radius: 14px;
+  --pico-spacing: 1rem;
+  --pico-font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  --pico-line-height: 1.5;
+}
+
+html {
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at top right, rgba(164, 255, 0, 0.07), transparent 18rem),
+    radial-gradient(circle at left 20%, rgba(255, 45, 143, 0.04), transparent 22rem),
+    var(--admin-bg-main);
+}
+
+body {
+  min-height: 100vh;
+  background: transparent;
+  color: var(--admin-text-main);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--admin-text-main);
+  letter-spacing: -0.02em;
+}
+
+p,
+label,
+small,
+summary,
+li {
+  color: var(--admin-text-sub);
+}
+
+a {
+  color: var(--admin-text-main);
+}
+
+a:hover,
+a:focus {
+  color: var(--admin-lime-accent);
+}
+
+button,
+[role="button"],
+input,
+select,
+textarea {
+  box-shadow: none;
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+}
+
+hr {
+  border-color: var(--admin-border);
+}
+
+table {
+  margin: 0;
+}
+
+thead th {
+  color: var(--admin-text-sub);
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}

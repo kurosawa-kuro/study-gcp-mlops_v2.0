@@ -1,0 +1,28 @@
+# Cloud Build config for the composer-runner image — Phase 7 V5 fix (2026-05-03)。
+# DAG が KubernetesPodOperator から `python -m <module>` を呼ぶ runner image。
+# Substitution `_IMAGE_URI` は `<sha>-<epoch>` 付き immutable tag。
+# scripts/deploy/composer_runner.py から渡される。
+#
+# Build context = repository root。Dockerfile は infra/run/services/composer_runner/Dockerfile。
+#
+# kaniko + AR cache。1 回目 ~15-20 分 (image ~1.5-2GB)、2 回目以降は scripts/
+# / pipeline/ / ml/ が変わらない限り cache hit で ~3-5 分。
+
+steps:
+  - name: gcr.io/kaniko-project/executor:v1.20.0
+    args:
+      - --destination=${_IMAGE_URI}
+      - --dockerfile=infra/run/services/composer_runner/Dockerfile
+      - --context=dir:///workspace
+      - --cache=true
+      - --cache-ttl=24h
+      - --use-new-run
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+substitutions:
+  _IMAGE_URI: ""
+
+timeout: 1800s

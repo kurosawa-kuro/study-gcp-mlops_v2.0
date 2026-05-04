@@ -1,0 +1,38 @@
+name: Setup GCP
+description: Workload Identity Federation auth + gcloud + optional Artifact Registry docker login.
+
+inputs:
+  workload_identity_provider:
+    description: WIF provider resource name (projects/.../locations/.../workloadIdentityPools/.../providers/...)
+    required: true
+  service_account:
+    description: Deployer SA email
+    required: true
+  project_id:
+    description: GCP project for gcloud default
+    required: true
+  region:
+    description: Region (required when configure_docker=true, for AR host)
+    required: false
+    default: ""
+  configure_docker:
+    description: If "true", run gcloud auth configure-docker against ${region}-docker.pkg.dev
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        service_account: ${{ inputs.service_account }}
+
+    - uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ inputs.project_id }}
+
+    - name: Configure Docker for Artifact Registry
+      if: inputs.configure_docker == 'true'
+      shell: bash
+      run: gcloud auth configure-docker ${{ inputs.region }}-docker.pkg.dev --quiet

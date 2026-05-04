@@ -1,0 +1,25 @@
+{
+  "name": "ranking-log-hourly-ctr",
+  "description": "Phase 6 T2 — 1h tumbling-window CTR aggregator over ranking-log Pub/Sub topic.",
+  "parameters": [
+    {
+      "name": "input_topic",
+      "label": "Pub/Sub input topic",
+      "helpText": "Fully-qualified Pub/Sub topic, e.g. projects/mlops-dev-a/topics/ranking-log",
+      "regexes": ["^projects/[^/]+/topics/[^/]+$"]
+    },
+    {
+      "name": "output_table",
+      "label": "BigQuery output table",
+      "helpText": "project:dataset.table — typically mlops-dev-a:mlops.ranking_log_hourly_ctr",
+      "regexes": ["^[^:]+:[^.]+\\.[^.]+$"]
+    },
+    {
+      "name": "window_size_sec",
+      "label": "Tumbling window seconds",
+      "helpText": "Window length in seconds; default 3600 (= 1 hour).",
+      "isOptional": true,
+      "regexes": ["^[0-9]+$"]
+    }
+  ]
+}

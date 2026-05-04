@@ -1,0 +1,29 @@
+# GKE Gateway controller backend health check (Phase 7 Run 1 incident).
+#
+# Without this policy, the GCP L7 LB falls back to the default health check
+# (`GET /` with 2xx required). search-api does not implement `/`, so the
+# probe gets 404 → BackendService marks all NEG endpoints UNHEALTHY → the
+# Gateway external IP returns 502/503 even though the Pod itself is
+# Ready=1/1 and `/livez` succeeds in-cluster.
+#
+# Phase 7 Run 1 had to be unblocked by `kubectl apply -f` of an equivalent
+# policy mid-deploy. Including it in the base kustomize set means
+# `make deploy-all` is one-shot for fresh projects.
+#
+# Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/configure-gateway-resources#configure_health_check
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: search-api-hc
+  namespace: search
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080
+        requestPath: /livez
+  targetRef:
+    group: ""
+    kind: Service
+    name: search-api

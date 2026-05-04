@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .title { font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 30px; font-weight: 700; fill: #0f172a; }
+      .text { font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 24px; fill: #0f172a; }
+      .small { font-size: 19px; }
+      .gcp { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 2.5; rx: 14; ry: 14; }
+      .data { fill: #ecfeff; stroke: #0f766e; stroke-width: 2.5; rx: 14; ry: 14; }
+      .job { fill: #fff7ed; stroke: #c2410c; stroke-width: 2.5; rx: 14; ry: 14; }
+      .artifact { fill: #f5f3ff; stroke: #6d28d9; stroke-width: 2.5; rx: 14; ry: 14; }
+      .stage { fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-dasharray: 10 8; rx: 18; ry: 18; }
+      .line { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <text x="60" y="56" class="title">GCP 技術と工程の対応</text>
+
+  <rect x="60" y="110" width="1480" height="110" class="stage"/>
+  <text x="90" y="145" class="text">1. データ保管と特徴量加工</text>
+  <rect x="140" y="160" width="220" height="64" class="data"/>
+  <text x="250" y="200" text-anchor="middle" class="text small">BigQuery raw.properties</text>
+  <rect x="450" y="160" width="170" height="64" class="gcp"/>
+  <text x="535" y="200" text-anchor="middle" class="text">Dataform</text>
+  <rect x="710" y="160" width="280" height="64" class="data"/>
+  <text x="850" y="200" text-anchor="middle" class="text small">feature_mart.property_features_daily</text>
+  <line x1="360" y1="192" x2="450" y2="192" class="line"/>
+  <line x1="620" y1="192" x2="710" y2="192" class="line"/>
+
+  <rect x="60" y="260" width="1480" height="120" class="stage"/>
+  <text x="90" y="295" class="text">2. 埋め込み生成と学習</text>
+  <rect x="150" y="310" width="210" height="64" class="job"/>
+  <text x="255" y="350" text-anchor="middle" class="text small">Cloud Run Job</text>
+  <text x="255" y="372" text-anchor="middle" class="text small">embedding-job</text>
+  <rect x="430" y="310" width="270" height="64" class="data"/>
+  <text x="565" y="350" text-anchor="middle" class="text small">BigQuery</text>
+  <text x="565" y="372" text-anchor="middle" class="text small">property_embeddings</text>
+  <rect x="770" y="310" width="210" height="64" class="job"/>
+  <text x="875" y="350" text-anchor="middle" class="text small">Cloud Run Job</text>
+  <text x="875" y="372" text-anchor="middle" class="text small">training-job</text>
+  <rect x="1050" y="310" width="180" height="64" class="artifact"/>
+  <text x="1140" y="350" text-anchor="middle" class="text small">GCS model.txt</text>
+  <rect x="1300" y="310" width="180" height="64" class="data"/>
+  <text x="1390" y="350" text-anchor="middle" class="text small">mlops.training_runs</text>
+  <line x1="360" y1="342" x2="430" y2="342" class="line"/>
+  <line x1="700" y1="342" x2="770" y2="342" class="line"/>
+  <line x1="980" y1="342" x2="1050" y2="342" class="line"/>
+  <line x1="1230" y1="342" x2="1300" y2="342" class="line"/>
+
+  <rect x="60" y="420" width="1480" height="120" class="stage"/>
+  <text x="90" y="455" class="text">3. 推論 API とハイブリッド検索</text>
+  <rect x="130" y="470" width="180" height="64" class="gcp"/>
+  <text x="220" y="510" text-anchor="middle" class="text small">Cloud Run Service</text>
+  <text x="220" y="532" text-anchor="middle" class="text small">search-api</text>
+  <rect x="390" y="470" width="170" height="64" class="gcp"/>
+  <text x="475" y="510" text-anchor="middle" class="text small">query embedding</text>
+  <rect x="640" y="470" width="230" height="64" class="data"/>
+  <text x="755" y="500" text-anchor="middle" class="text small">Meilisearch BM25</text>
+  <text x="755" y="522" text-anchor="middle" class="text small">+ BQ VECTOR_SEARCH</text>
+  <rect x="950" y="470" width="120" height="64" class="gcp"/>
+  <text x="1010" y="510" text-anchor="middle" class="text">rerank</text>
+  <rect x="1150" y="470" width="150" height="64" class="data"/>
+  <text x="1225" y="510" text-anchor="middle" class="text small">ranking_log</text>
+  <rect x="1380" y="470" width="120" height="64" class="data"/>
+  <text x="1440" y="510" text-anchor="middle" class="text small">feedback</text>
+  <line x1="310" y1="502" x2="390" y2="502" class="line"/>
+  <line x1="560" y1="502" x2="640" y2="502" class="line"/>
+  <line x1="870" y1="502" x2="950" y2="502" class="line"/>
+  <line x1="1070" y1="502" x2="1150" y2="502" class="line"/>
+
+  <rect x="60" y="580" width="1480" height="80" class="stage"/>
+  <text x="90" y="615" class="text">4. 再学習ループ</text>
+  <rect x="250" y="600" width="180" height="44" class="gcp"/>
+  <text x="340" y="628" text-anchor="middle" class="text small">Cloud Scheduler</text>
+  <rect x="520" y="600" width="130" height="44" class="gcp"/>
+  <text x="585" y="628" text-anchor="middle" class="text small">Pub/Sub</text>
+  <rect x="740" y="600" width="140" height="44" class="gcp"/>
+  <text x="810" y="628" text-anchor="middle" class="text small">Eventarc</text>
+  <rect x="970" y="600" width="210" height="44" class="job"/>
+  <text x="1075" y="628" text-anchor="middle" class="text small">Cloud Run Job training-job</text>
+  <line x1="430" y1="622" x2="520" y2="622" class="line"/>
+  <line x1="650" y1="622" x2="740" y2="622" class="line"/>
+  <line x1="880" y1="622" x2="970" y2="622" class="line"/>
+</svg>

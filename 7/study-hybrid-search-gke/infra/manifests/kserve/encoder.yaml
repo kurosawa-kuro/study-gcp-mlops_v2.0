@@ -1,0 +1,62 @@
+# property-encoder — multilingual-e5 serving via KServe Python predictor
+#
+# ランタイム選定メモ (docs/tasks/TASKS_ROADMAP.md §11 段階 B):
+# - 第一候補: 自前 Python predictor (sentence-transformers + transformers)
+# - 第二候補: Huggingface serving runtime (HF runtime の e5 サポート状況要検証)
+# - GPU の要否は P95 latency 実測で判断。Autopilot で GPU は `nvidia-l4` 等の
+#   acceleratorClass を `spec.predictor.acceleratorClass` に指定する。
+#
+# `storageUri` は scripts/deploy/kserve_models.py が Vertex Model Registry から
+# 引いて書き戻す (初期値は Phase 5 の encoder artifact を指す placeholder)。
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: property-encoder
+  namespace: kserve-inference
+  annotations:
+    # RawDeployment mode (Knative なし) で HPA / Deployment を直接作らせる
+    serving.kserve.io/deploymentMode: "RawDeployment"
+spec:
+  predictor:
+    serviceAccountName: encoder
+    # 学習リポは最小スペック方針 (memory `feedback_low_spec_learning.md` /
+    # docs/tasks/TASKS_ROADMAP.md §7)。ME5 (multilingual-e5-base) は ~560MB
+    # params なので 1cpu/2Gi requests で推論可。peak で limits まで swing する。
+    # maxReplicas=1 にして GKE Autopilot CPU quota 予約と学習用コストを最小化。
+    # Production 化時は User 判断で 2cpu/4Gi + maxReplicas=3 に戻す。
+    minReplicas: 1
+    maxReplicas: 1
+    containers:
+      - name: kserve-container
+        # KServe HuggingFace stock runtime で `intfloat/multilingual-e5-base` を
+        # text_embedding task で serve する。Phase 7 Run 2 の決定:
+        #   - 自前の Vertex CPR encoder image をビルドする方式 (旧 placeholder
+        #     `gcr.io/cloudrun/hello` + `make deploy-kserve-images`) は
+        #     `infra/run/services/encoder/Dockerfile` の維持コストが学習リポの
+        #     最小スペック方針 (memory `feedback_low_spec_learning.md`) に
+        #     対し過剰だった。
+        #   - HF stock runtime は v0.14.0 が `multilingual-e5-base` を直接
+        #     ロードでき、weights を AR/GCS に持つ必要がない。E5 prefix
+        #     (`query: ` / `passage: `) は app/services/adapters/kserve_encoder.py
+        #     が client 側で付与する契約に変更。
+        # 切替時の adapter 側ペイロード: `{"instances": ["query: ..."]}` (HF v1)。
+        # docs/02_移行ロードマップ切り替え基盤.md §encoder runtime 参照。
+        image: kserve/huggingfaceserver:v0.14.0
+        args:
+          - --model_id=intfloat/multilingual-e5-base
+          - --task=text_embedding
+        resources:
+          # Autopilot general-purpose class は memory:cpu を 1:1 〜 6.5:1 に
+          # 制約。ここは 2:1 で統一。
+          # ephemeral-storage (Phase 7 Run 1 B14): ME5 weights 1.1 GB を
+          # /tmp に download するため Autopilot default 1Gi を超え Pod が
+          # `Pod ephemeral local storage usage exceeds the total limit of
+          # containers 1Gi.` で evict される。3Gi に拡張。
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+            ephemeral-storage: "3Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+            ephemeral-storage: "3Gi"

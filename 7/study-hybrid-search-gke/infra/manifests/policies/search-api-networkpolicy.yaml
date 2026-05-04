@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: search-api
+  namespace: search
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: search-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # In-cluster traffic (e.g. neighboring namespaces, future sidecars).
+    - from:
+        - namespaceSelector: {}
+    # GCP L7 LB / GFE health check probes hit the Pod IP directly, NOT via
+    # the cluster network. Without these CIDRs, the GFE probe times out and
+    # the BackendService marks all NEG endpoints UNHEALTHY → external 502/503
+    # even though `kubectl get pods` shows Ready=1/1 and `/livez` works
+    # in-cluster. Source ranges are documented at:
+    #   https://cloud.google.com/load-balancing/docs/health-check-concepts#fw-rule
+    # Phase 7 Run 1 incident: had to `kubectl patch` this in by hand
+    # before `/livez` 200 returned through the Gateway external IP.
+    - from:
+        - ipBlock:
+            cidr: 35.191.0.0/16
+        - ipBlock:
+            cidr: 130.211.0.0/22
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kserve-inference
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+        - protocol: TCP
+          port: 443
+    # Phase 7 Run 1 (B12 backport / Run 4 補完): GKE metadata server access for
+    # Workload Identity. Without this, Pod's metadata.google.internal name
+    # resolution succeeds but TCP 80 fetch is blocked → lifespan hangs at
+    # google-cloud-* SDK init.
+    - to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+      ports:
+        - protocol: TCP
+          port: 80

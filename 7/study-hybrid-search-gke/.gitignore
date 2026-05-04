@@ -1,0 +1,94 @@
+# =============================================================================
+# Lock files that MUST be committed (listed here as a reminder; no ignore rule):
+#   - uv.lock                    — Python workspace lock (reproducible builds)
+#   - infra/.terraform.lock.hcl  — Terraform provider lock (reproducible plans)
+# =============================================================================
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
+.ipynb_checkpoints/
+
+# coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# uv
+.uv/
+
+# ----- Local env / secrets -----
+.env
+.env.*
+.envrc
+# env/secret/ はローカル開発用クレデンシャル置き場。README のみコミットする
+env/secret/*
+!env/secret/README.md
+# Defense-in-depth: we use Workload Identity Federation, so no SA keys should
+# ever exist in the repo. These patterns catch accidental drops.
+*-credentials.json
+*-credentials-*.json
+*.sa-key.json
+service-account*.json
+
+# ----- Local model caches / experiment tracking -----
+.cache/
+models/
+wandb/
+ml/wandb/
+mlruns/
+/tmp/model/
+
+# ----- Terraform -----
+# State, plans, and any ad-hoc tfvars must stay local.
+# `.terraform.lock.hcl` is intentionally NOT ignored — it's committed.
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfplan
+infra/tfplan
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+
+# ----- Dataform -----
+pipeline/data_job/dataform/node_modules/
+pipeline/data_job/dataform/.df-credentials.json
+pipeline/data_job/dataform/.tmp/
+# pipeline/data_job/dataform/workflow_settings.yaml は env/config/setting.yaml から
+# `make sync-dataform-config` で生成する build artifact。git 管理対象外にして
+# 設定ファイルの commit 元を setting.yaml に一本化する。
+pipeline/data_job/dataform/workflow_settings.yaml
+pipeline/data_job/dataform/dist/
+
+# ----- Editors / OS -----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ----- Logs -----
+# ローカル実行で落ちるデバッグログ全般 (例: tea_debug.log)。
+# Terraform の crash.log は上で個別に列挙しているが、汎用 log もまとめて弾く。
+*.log
+
+# Shell / agent: stdout が取れない環境向けに、コマンド出力をワークスペース
+# ファイルへリダイレクトして検証する場合の作業用ファイル。誤 commit 防止。
+_*_out.txt
+_*_exit.txt
+_task_states_*.txt
+_make_check*.txt
+.cursor_shell_test

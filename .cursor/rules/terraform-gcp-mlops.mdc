@@ -1,0 +1,12 @@
+---
+description: Terraform / GCP — WIF, no keys in repo, phase isolation
+globs: ["**/*.tf", "**/*.tfvars"]
+alwaysApply: false
+---
+
+# Terraform (phase-aware)
+
+- **Scope**: Edits under `*/infra/terraform/**` are **phase-local**. Do not copy module names, variable names, or `backend` blocks from another phase without reading that phase’s `CLAUDE.md` and `make help`.
+- **Auth**: Prefer **Workload Identity Federation**; do **not** add or suggest service account JSON keys in repo, CI, or examples.
+- **Apply / destroy**: Do not assume permission to run `terraform apply` or `destroy` in an arbitrary project. **Phase 7** pre-approved automation for project `mlops-dev-a` is documented in [`7/study-hybrid-search-gke/CLAUDE.md`](7/study-hybrid-search-gke/CLAUDE.md) only.
+- **After changes**: From the phase root, run `make tf-validate` or `make check` if the phase defines them (see phase `CLAUDE.md`).

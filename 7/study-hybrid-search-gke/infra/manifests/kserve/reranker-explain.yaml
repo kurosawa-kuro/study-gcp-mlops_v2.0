@@ -1,0 +1,91 @@
+# Vertex CPR-style LightGBM reranker server with /explain (TreeSHAP).
+#
+# Why a separate Pod (not via the KServe ISVC):
+#   The KServe stock LightGBM runtime (`kserve/lgbserver:v0.14.0`) only
+#   supports v2 predict and ignores the `parameters.explain=true` extension
+#   (B19 incident). Phase 7 routes /search?explain=true to this Pod via the
+#   `KSERVE_RERANKER_EXPLAIN_URL` env on search-api so the existing /predict
+#   path keeps using the lgbserver ISVC while /explain comes from
+#   `ml/serving/reranker.py` which knows TreeSHAP.
+#
+# Image: built by `gcloud builds submit --config=infra/run/services/reranker/cloudbuild.yaml`.
+# Update the image tag below after each build (kubectl set image).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: property-reranker-explain
+  namespace: kserve-inference
+  labels:
+    app.kubernetes.io/name: property-reranker-explain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: property-reranker-explain
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: property-reranker-explain
+    spec:
+      serviceAccountName: reranker
+      containers:
+        - name: reranker
+          # placeholder — `make deploy-kserve-images` (= scripts.deploy.build_kserve_images)
+          # が `infra/run/services/reranker/cloudbuild.yaml` でビルドし、その後
+          # `kubectl set image deployment/property-reranker-explain reranker=<新タグ>`
+          # で書き換える。下の `:9698b2a6c2c5-1777123783` タグは PDCA の最初の
+          # apply で参照される。AR にこのタグが残っていれば Pod は ImagePullBackOff
+          # にならず Running まで上がる (build_kserve_images が後で上書きする)。
+          # ImagePullBackOff になる場合は `make deploy-kserve-images` が未実行。
+          image: asia-northeast1-docker.pkg.dev/mlops-dev-a/mlops/property-reranker:9698b2a6c2c5-1777123783
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            # ml/serving/reranker.py が GCS から model.txt を pull するための env。
+            # /predict と同じ artifact (production-aliased) を読むので
+            # ISVC の storageUri と整合させる。
+            - name: AIP_STORAGE_URI
+              value: gs://mlops-dev-a-models/lgbm/v1/
+            - name: AIP_HEALTH_ROUTE
+              value: /health
+            - name: AIP_PREDICT_ROUTE
+              value: /predict
+            - name: AIP_EXPLAIN_ROUTE
+              value: /explain
+            - name: PORT
+              value: "8080"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+              ephemeral-storage: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+              ephemeral-storage: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: property-reranker-explain
+  namespace: kserve-inference
+  labels:
+    app.kubernetes.io/name: property-reranker-explain
+spec:
+  selector:
+    app.kubernetes.io/name: property-reranker-explain
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP

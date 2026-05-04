@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ML Admin{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=fallback" rel="stylesheet">
+  <link href="/static/css/pico.min.css" rel="stylesheet">
+  <link href="/static/css/admin.css" rel="stylesheet">
+  <link href="/static/css/custom.css" rel="stylesheet">
+  <script>document.documentElement.dataset.theme = 'dark';</script>
+</head>
+<body
+  :class="{ 'sidebar-expanded': sidebarExpanded }"
+  x-data="{ sidebarOpen: false, sidebarExpanded: (localStorage.getItem('sidebar-expanded') ?? 'true') == 'true' }"
+  x-init="$watch('sidebarExpanded', v => localStorage.setItem('sidebar-expanded', v))"
+>
+  <div class="admin-wrapper">
+    <div class="admin-sidebar-container">
+      <div class="admin-sidebar-backdrop" :class="sidebarOpen ? '' : 'is-hidden'" aria-hidden="true" x-cloak></div>
+
+      <div
+        id="sidebar"
+        class="admin-sidebar"
+        :class="sidebarOpen ? '' : 'is-closed'"
+        @click.outside="sidebarOpen = false"
+        @keydown.escape.window="sidebarOpen = false"
+        x-cloak="lg"
+      >
+        <div class="sidebar-header">
+          <button class="sidebar-close-btn" @click.stop="sidebarOpen = !sidebarOpen" aria-controls="sidebar" :aria-expanded="sidebarOpen">
+            <span class="sr-only">Close sidebar</span>
+            <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24"><path d="M10.7 18.7l1.4-1.4L7.8 13H20v-2H7.8l4.3-4.3-1.4-1.4L4 12z"/></svg>
+          </button>
+          <a class="sidebar-logo" href="/">
+            <svg class="fill-current" style="color: var(--lime-400)" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+              <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z"/>
+            </svg>
+          </a>
+        </div>
+
+        <div>
+          <div class="nav-group">
+            <h3 class="nav-group-title">
+              <span class="dots" aria-hidden="true">&bull;&bull;&bull;</span>
+              <span class="sidebar-text">ML Pipeline</span>
+            </h3>
+            <ul class="nav-list">
+              <li class="nav-item{% if active == 'predict' %} active{% endif %}">
+                <a class="nav-link" href="/">
+                  <div class="nav-link-inner">
+                    <div class="nav-link-left grow">
+                      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M6.649 1.018a1 1 0 0 1 .793 1.171L6.997 4.5h3.464l.517-2.689a1 1 0 1 1 1.964.378L12.498 4.5h2.422a1 1 0 0 1 0 2h-2.807l-.77 4h2.117a1 1 0 1 1 0 2h-2.501l-.517 2.689a1 1 0 1 1-1.964-.378l.444-2.311H5.46l-.517 2.689a1 1 0 1 1-1.964-.378l.444-2.311H1a1 1 0 1 1 0-2h2.807l.77-4H2.46a1 1 0 0 1 0-2h2.5l.518-2.689a1 1 0 0 1 1.17-.793Z"/></svg>
+                      <span class="nav-link-label">Predict</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li class="nav-item{% if active == 'metrics' %} active{% endif %}">
+                <a class="nav-link" href="/metrics">
+                  <div class="nav-link-inner">
+                    <div class="nav-link-left grow">
+                      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M14 0a1 1 0 0 1 1 1v14a1 1 0 1 1-2 0V1a1 1 0 0 1 1-1ZM8 5a1 1 0 0 1 1 1v9a1 1 0 1 1-2 0V6a1 1 0 0 1 1-1ZM2 9a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Z"/></svg>
+                      <span class="nav-link-label">Metrics</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li class="nav-item{% if active == 'data' %} active{% endif %}">
+                <a class="nav-link" href="/data">
+                  <div class="nav-link-inner">
+                    <div class="nav-link-left grow">
+                      <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M8 0C3.582 0 0 1.343 0 3v10c0 1.657 3.582 3 8 3s8-1.343 8-3V3c0-1.657-3.582-3-8-3Zm6 7.5c0 .465-1.32 1.18-3.5 1.4-1.637.165-3.363.165-5 0C3.32 8.68 2 7.965 2 7.5V5.83c1.5.72 3.67 1.17 6 1.17s4.5-.45 6-1.17V7.5ZM8 5C4.691 5 2 4.105 2 3s2.691-2 6-2 6 .895 6 2-2.691 2-6 2Zm0 10c-3.309 0-6-.895-6-2v-1.83c1.5.72 3.67 1.17 6 1.17s4.5-.45 6-1.17V13c0 1.105-2.691 2-6 2Z"/></svg>
+                      <span class="nav-link-label">Data</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sidebar-expand-btn-wrap">
+          <button class="sidebar-expand-btn" @click="sidebarExpanded = !sidebarExpanded">
+            <span class="sr-only">Expand / collapse sidebar</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M15 16a1 1 0 0 1-1-1V1a1 1 0 1 1 2 0v14a1 1 0 0 1-1 1ZM8.586 7H1a1 1 0 1 0 0 2h7.586l-2.793 2.793a1 1 0 1 0 1.414 1.414l4.5-4.5A.997.997 0 0 0 12 8.01M11.924 7.617a.997.997 0 0 0-.217-.324l-4.5-4.5a1 1 0 0 0-1.414 1.414L8.586 7M12 7.99a.996.996 0 0 0-.076-.373Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-content">
+      <header class="admin-header">
+        <div class="admin-header-inner">
+          <div class="admin-header-content">
+            <div class="header-left">
+              <button class="hamburger-btn" @click.stop="sidebarOpen = !sidebarOpen" aria-controls="sidebar" :aria-expanded="sidebarOpen">
+                <span class="sr-only">Open sidebar</span>
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="4" y="5" width="16" height="2"/>
+                  <rect x="4" y="11" width="16" height="2"/>
+                  <rect x="4" y="17" width="16" height="2"/>
+                </svg>
+              </button>
+            </div>
+            <div class="header-right">
+              <span class="text-xs text-muted">California Housing · LightGBM</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="grow">
+        <div class="admin-main">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/static/js/alpinejs.min.js" defer></script>
+</body>
+</html>

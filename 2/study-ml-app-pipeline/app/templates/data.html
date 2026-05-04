@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Data · California Housing{% endblock %}
+
+{% block content %}
+<div class="ml-page-header">
+  <div>
+    <h1>Training Data</h1>
+    <div class="sub">PostgreSQL (postgres サービス) のサンプル表示</div>
+  </div>
+</div>
+
+<div class="ml-stack">
+  <div class="ml-card">
+    <div class="ml-toolbar">
+      <a class="ml-tab {% if split == 'train' %}active{% endif %}" href="/data?split=train&limit={{ limit }}">train</a>
+      <a class="ml-tab {% if split == 'test' %}active{% endif %}" href="/data?split=test&limit={{ limit }}">test</a>
+      <span class="ml-meta">
+        {% if total %}
+        先頭 {{ rows|length }} / 全 {{ total }} 件
+        {% else %}
+        データなし
+        {% endif %}
+      </span>
+    </div>
+
+    {% if rows %}
+    <div class="ml-table-wrap">
+      <table class="ml-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            {% for col in columns %}
+            <th class="{% if col == target %}target{% endif %}">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            {% for col in columns %}
+            <td class="{% if col == target %}target{% endif %}">
+              {% set v = row[col] %}
+              {% if v is number %}{{ "%.4f"|format(v) if v is float else v }}{% else %}{{ v }}{% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="ml-empty">
+      データが読み込めませんでした。<br>
+      先に <code>make seed</code> を実行してください。
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

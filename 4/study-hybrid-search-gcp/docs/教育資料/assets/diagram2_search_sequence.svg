@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .title { font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 30px; font-weight: 700; fill: #0f172a; }
+      .label { font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 22px; fill: #0f172a; }
+      .small { font-size: 18px; }
+      .actor { fill: #f8fafc; stroke: #334155; stroke-width: 2.5; rx: 12; ry: 12; }
+      .service { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 2.5; rx: 12; ry: 12; }
+      .data { fill: #ecfeff; stroke: #0f766e; stroke-width: 2.5; rx: 12; ry: 12; }
+      .model { fill: #f5f3ff; stroke: #6d28d9; stroke-width: 2.5; rx: 12; ry: 12; }
+      .lifeline { stroke: #94a3b8; stroke-width: 2; stroke-dasharray: 8 6; }
+      .arrow { stroke: #334155; stroke-width: 2.8; fill: none; marker-end: url(#arrow); }
+      .return { stroke: #64748b; stroke-width: 2.3; fill: none; stroke-dasharray: 8 6; marker-end: url(#arrow); }
+      .group { fill: #fff7ed; stroke: #c2410c; stroke-width: 2; rx: 16; ry: 16; }
+    </style>
+  </defs>
+
+  <text x="60" y="56" class="title">推論工程のシーケンス</text>
+
+  <rect x="40" y="90" width="120" height="48" class="actor"/><text x="100" y="121" text-anchor="middle" class="label">user</text>
+  <rect x="220" y="90" width="220" height="48" class="service"/><text x="330" y="121" text-anchor="middle" class="label">search-api</text>
+  <rect x="500" y="90" width="170" height="48" class="actor"/><text x="585" y="121" text-anchor="middle" class="label">query embedding</text>
+  <rect x="730" y="90" width="260" height="48" class="data"/><text x="860" y="114" text-anchor="middle" class="label small">Meilisearch + BigQuery</text><text x="860" y="132" text-anchor="middle" class="label small">BM25 / VECTOR_SEARCH</text>
+  <rect x="1010" y="90" width="160" height="48" class="actor"/><text x="1090" y="121" text-anchor="middle" class="label">rerank</text>
+  <rect x="1230" y="90" width="140" height="48" class="model"/><text x="1300" y="121" text-anchor="middle" class="label">model.txt</text>
+  <rect x="1430" y="90" width="130" height="48" class="data"/><text x="1495" y="121" text-anchor="middle" class="label">ranking_log</text>
+
+  <line x1="100" y1="138" x2="100" y2="700" class="lifeline"/>
+  <line x1="330" y1="138" x2="330" y2="700" class="lifeline"/>
+  <line x1="585" y1="138" x2="585" y2="700" class="lifeline"/>
+  <line x1="860" y1="138" x2="860" y2="700" class="lifeline"/>
+  <line x1="1090" y1="138" x2="1090" y2="700" class="lifeline"/>
+  <line x1="1300" y1="138" x2="1300" y2="700" class="lifeline"/>
+  <line x1="1495" y1="138" x2="1495" y2="700" class="lifeline"/>
+
+  <line x1="100" y1="180" x2="330" y2="180" class="arrow"/>
+  <text x="215" y="168" text-anchor="middle" class="label small">POST /search</text>
+
+  <line x1="330" y1="235" x2="585" y2="235" class="arrow"/>
+  <text x="458" y="223" text-anchor="middle" class="label small">embed(query)</text>
+
+  <line x1="585" y1="290" x2="330" y2="290" class="return"/>
+  <text x="458" y="278" text-anchor="middle" class="label small">query vector</text>
+
+  <rect x="250" y="325" width="1260" height="235" class="group"/>
+  <text x="280" y="355" class="label">search-api 内で進む推論工程</text>
+
+  <line x1="330" y1="395" x2="860" y2="395" class="arrow"/>
+  <text x="595" y="383" text-anchor="middle" class="label small">BM25 + VECTOR_SEARCH + filters</text>
+
+  <line x1="860" y1="450" x2="330" y2="450" class="return"/>
+  <text x="595" y="438" text-anchor="middle" class="label small">RRF candidates + me5_score + lexical_rank + semantic_rank</text>
+
+  <line x1="1090" y1="395" x2="1300" y2="395" class="arrow"/>
+  <text x="1195" y="383" text-anchor="middle" class="label small">load booster</text>
+
+  <line x1="1300" y1="450" x2="1090" y2="450" class="return"/>
+  <text x="1195" y="438" text-anchor="middle" class="label small">trained model</text>
+
+  <line x1="330" y1="505" x2="1090" y2="505" class="arrow"/>
+  <text x="710" y="493" text-anchor="middle" class="label small">build features and rerank candidates</text>
+
+  <line x1="1090" y1="560" x2="330" y2="560" class="return"/>
+  <text x="710" y="548" text-anchor="middle" class="label small">final ranked items</text>
+
+  <line x1="330" y1="615" x2="1495" y2="615" class="arrow"/>
+  <text x="912" y="603" text-anchor="middle" class="label small">publish ranking_log</text>
+
+  <line x1="330" y1="680" x2="100" y2="680" class="return"/>
+  <text x="215" y="668" text-anchor="middle" class="label small">response</text>
+</svg>

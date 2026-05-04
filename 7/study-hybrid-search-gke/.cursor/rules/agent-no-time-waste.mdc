@@ -1,0 +1,24 @@
+---
+description: Ban agent polling loops and redundant Cloud Builds in study-hybrid-search-gke
+alwaysApply: true
+---
+
+# Memory / 禁止の趣旨（ユーザー確定文）
+
+学習・検証の時間を、エージェント側の「待たせ」や「焼き直し」で消費するのは **契約上の信頼を損なう行為**として扱う。長時間ポーリングや根拠のない再ビルドは **クレーム・返金レベル**の時間コストに相当する。
+
+---
+
+# Time-cost rules (Phase 7 hybrid-search-gke)
+
+Treat the following as **trust-breaking / customer-claim level** misuse of the user's session:
+
+1. **No polling loops** — Do not run shell `for`/`while` loops with `sleep` waiting for Composer DAG runs, Vertex pipelines, or Cloud Build. Run **`make ops-composer-task-states` once** (or a single equivalent command), report task states, and stop. Long-running work continues on GCP without the agent blocking.
+
+2. **No redundant `make build-composer-runner`** — Do not rebuild the composer-runner image unless Dockerfile / runner-relevant code changed, or there is evidence the live Pod uses a stale image. A recent successful build logged in `docs/tasks/TASKS.md` is sufficient reason to skip.
+
+3. **No blind retries** — After a failure, classify logs once, apply one fix if needed, verify once.
+
+4. **`env/config/setting.yaml` は非クレデンシャル専用（リポジトリ設計）** — 秘密は `env/secret/credential.yaml`（gitignore）または Secret Manager。setting に鍵・トークン実体を書く提案をしない。迷ったら `env/README.md`。
+
+5. **長時間ジョブをファイルへ `tee`／リダイレクトしたとき** — 応答の **最初** にユーザーへ **`tail -f` の絶対パス**を提示する。例: `make deploy-all` → `tail -f …/_verify_deploy_all.log`；full recreate pytest → `tail -f …/_full_recreate_gate.log`。質問で止めず、`docs/tasks/TASKS.md` にコピペ例あり。

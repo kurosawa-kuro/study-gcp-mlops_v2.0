@@ -1,0 +1,24 @@
+# プロジェクト全体の非クレデンシャル設定 — ここが single source of truth。
+#
+# - Python から: share.config.BaseAppSettings が起動時に読み込む
+#   (pydantic-settings の YamlConfigSettingsSource 経由)
+# - Docker から: コンテナに /app/env/config/setting.yaml として COPY される
+#
+# 優先度: 環境変数 > env/secret/.env > このファイル > コード内の field default
+#
+# Credentials / secrets は **ここに置かない**。
+# 機密情報は env/secret/.env に置き、env/secret/ 自体は .gitignore する想定。
+
+# データソース
+data_source: postgres
+
+# PostgreSQL 接続先（docker-compose 内のサービス名を既定とする）
+# ローカルから直接接続する場合は環境変数 POSTGRES_HOST=localhost で上書き可能
+postgres_host: postgres
+postgres_port: 5432
+postgres_db: mlpipeline
+postgres_user: admin
+
+# モデル出力 / 参照
+model_dir: ml/registry/artifacts
+model_path: ml/registry/artifacts/latest/model.lgb

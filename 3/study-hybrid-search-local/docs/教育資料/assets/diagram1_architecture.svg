@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 2; rx: 12; ry: 12; }
+      .db { fill: #ecfeff; stroke: #0f766e; stroke-width: 2; }
+      .decision { fill: #fff7ed; stroke: #c2410c; stroke-width: 2; }
+      .text { font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 24px; fill: #0f172a; }
+      .small { font-size: 21px; }
+      .line { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .dashed { stroke-dasharray: 8 6; }
+      .title { font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 28px; font-weight: 700; fill: #0f172a; }
+    </style>
+  </defs>
+
+  <text x="60" y="52" class="title">全体アーキテクチャ</text>
+
+  <rect x="50" y="110" width="170" height="58" class="box"/>
+  <text x="135" y="148" text-anchor="middle" class="text">ユーザー</text>
+
+  <rect x="270" y="110" width="210" height="58" class="box"/>
+  <text x="375" y="148" text-anchor="middle" class="text">FastAPI /search</text>
+
+  <polygon points="570,98 690,139 570,180 450,139" class="decision"/>
+  <text x="570" y="132" text-anchor="middle" class="text small">Redis</text>
+  <text x="570" y="157" text-anchor="middle" class="text small">cache hit?</text>
+
+  <rect x="780" y="48" width="210" height="58" class="box"/>
+  <text x="885" y="86" text-anchor="middle" class="text">検索結果を返却</text>
+
+  <rect x="760" y="180" width="220" height="58" class="box"/>
+  <text x="870" y="205" text-anchor="middle" class="text small">Meilisearch</text>
+  <text x="870" y="228" text-anchor="middle" class="text small">候補取得</text>
+
+  <rect x="1040" y="180" width="220" height="58" class="box"/>
+  <text x="1150" y="205" text-anchor="middle" class="text small">ME5 query</text>
+  <text x="1150" y="228" text-anchor="middle" class="text small">embedding</text>
+
+  <rect x="1040" y="292" width="220" height="58" class="box"/>
+  <text x="1150" y="317" text-anchor="middle" class="text small">cosine similarity</text>
+  <text x="1150" y="340" text-anchor="middle" class="text small">me5_score</text>
+
+  <rect x="760" y="292" width="220" height="58" class="box"/>
+  <text x="870" y="330" text-anchor="middle" class="text">LightGBM rerank</text>
+
+  <rect x="470" y="392" width="280" height="68" class="box"/>
+  <text x="610" y="418" text-anchor="middle" class="text small">search_logs</text>
+  <text x="610" y="443" text-anchor="middle" class="text small">ranking_compare_logs</text>
+
+  <rect x="840" y="392" width="180" height="58" class="box"/>
+  <text x="930" y="430" text-anchor="middle" class="text">Redis set</text>
+
+  <rect x="1060" y="392" width="210" height="58" class="db"/>
+  <text x="1165" y="418" text-anchor="middle" class="text small">property_embeddings</text>
+  <text x="1165" y="441" text-anchor="middle" class="text small">property_features</text>
+
+  <line x1="220" y1="139" x2="270" y2="139" class="line"/>
+  <line x1="480" y1="139" x2="450" y2="139" class="line"/>
+  <line x1="690" y1="139" x2="780" y2="77" class="line"/>
+  <line x1="620" y1="171" x2="790" y2="205" class="line"/>
+  <line x1="980" y1="209" x2="1040" y2="209" class="line"/>
+  <line x1="1150" y1="238" x2="1150" y2="292" class="line"/>
+  <line x1="1040" y1="321" x2="980" y2="321" class="line"/>
+  <line x1="870" y1="350" x2="700" y2="410" class="line"/>
+  <line x1="750" y1="426" x2="840" y2="421" class="line"/>
+  <line x1="1020" y1="421" x2="780" y2="421" class="line"/>
+  <line x1="930" y1="392" x2="930" y2="180" class="line dashed"/>
+  <line x1="1060" y1="421" x2="1150" y2="350" class="line"/>
+  <line x1="1060" y1="421" x2="980" y2="330" class="line"/>
+
+  <text x="720" y="95" class="text small">hit</text>
+  <text x="700" y="205" class="text small">miss</text>
+</svg>

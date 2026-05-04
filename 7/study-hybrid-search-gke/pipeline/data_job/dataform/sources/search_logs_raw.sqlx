@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "mlops-dev-a",
+  schema: "mlops",
+  name: "search_logs",
+  description: "Infra-owned search log table (Terraform-managed). Used by property_features_daily to count impressions per property."
+}

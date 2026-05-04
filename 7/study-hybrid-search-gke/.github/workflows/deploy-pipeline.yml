@@ -1,0 +1,73 @@
+name: Deploy Pipeline
+
+# Phase 10: compiles the KFP embed + train pipelines, pushes the YAML templates
+# to gs://mlops-dev-a-pipeline-root/templates/, and re-runs the Model Monitoring
+# + PipelineJobSchedule setup scripts idempotently.
+#
+# Everything below is read by the pipeline-trigger Cloud Function at fire time
+# (see infra/terraform/modules/vertex/main.tf env vars).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pipeline/data_job/**
+      - pipeline/training_job/**
+      - pipeline/evaluation_job/**
+      - pipeline/batch_serving_job/**
+      - pipeline/workflow/**
+      - scripts/setup/create_schedule.py
+      - scripts/setup/setup_model_monitoring.py
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/deploy-pipeline.yml
+      - .github/actions/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-northeast1
+  PROJECT_ID: mlops-dev-a
+  PIPELINE_ROOT_BUCKET: mlops-dev-a-pipeline-root
+
+jobs:
+  compile-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-env
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          configure_docker: "false"
+
+      - name: Compile embed_pipeline
+        run: |
+          uv run python -m pipeline.workflow.compile --target embed \
+            --output-dir dist/pipelines
+
+      - name: Compile train_pipeline
+        run: |
+          uv run python -m pipeline.workflow.compile --target train \
+            --output-dir dist/pipelines
+
+      - name: Upload compiled templates to GCS
+        run: |
+          gsutil -m cp dist/pipelines/*.yaml \
+            gs://${{ env.PIPELINE_ROOT_BUCKET }}/templates/
+
+      - name: Ensure Model Monitoring job
+        run: |
+          uv run python -m scripts.setup.setup_model_monitoring
+
+      - name: Ensure PipelineJobSchedule (daily embed + weekly train)
+        run: |
+          uv run python -m scripts.setup.create_schedule

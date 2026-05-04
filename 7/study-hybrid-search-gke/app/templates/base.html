@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ハイブリッド検索 UI (Phase 7){% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/pico-admin-pico.css">
+  <link rel="stylesheet" href="/static/css/pico-admin-theme.css">
+  <link rel="stylesheet" href="/static/css/pico-admin-layout.css">
+  <link rel="stylesheet" href="/static/css/pico-admin-components.css">
+  <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body class="admin-body" data-sidebar-open="false">
+<button class="admin-mobile-toggle secondary" type="button" data-sidebar-toggle>メニュー</button>
+<div class="admin-sidebar-backdrop" data-sidebar-backdrop></div>
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar__inner">
+      <div class="admin-brand">
+        <div class="admin-brand__mark">H</div>
+        <div>
+          <strong>Hybrid Search</strong>
+          <div class="admin-brand__eyebrow">Phase 7 · GKE + KServe</div>
+        </div>
+        <button class="secondary" type="button" data-sidebar-close>閉じる</button>
+      </div>
+
+      <nav class="admin-nav">
+        <details open>
+          <summary>Search</summary>
+          <ul>
+            <li><a class="admin-nav-item" href="/ui/" {% if active == 'search-user' %}aria-current="page"{% endif %}>一般向け検索</a></li>
+            <li><a class="admin-nav-item" href="/ui/dev" {% if active == 'search-dev' %}aria-current="page"{% endif %}>開発者検索</a></li>
+          </ul>
+        </details>
+
+        {% if page_mode == 'dev' %}
+          <details open>
+            <summary>Developer</summary>
+            <ul>
+              <li><a class="admin-nav-item" href="/ui/dev/model/metrics" {% if active == 'model-metrics' %}aria-current="page"{% endif %}>モデル精度</a></li>
+              <li><a class="admin-nav-item" href="/ui/dev/data" {% if active == 'data' %}aria-current="page"{% endif %}>学習データ</a></li>
+              <li><a class="admin-nav-item" href="/ui/dev/ops" {% if active == 'ops' %}aria-current="page"{% endif %}>運用チェック</a></li>
+              <li><a class="admin-nav-item admin-nav-item--docs" href="/ui/dev/api-docs">API Docs ↗</a></li>
+            </ul>
+          </details>
+        {% endif %}
+      </nav>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-header app-header">
+      <div>
+        <div class="admin-eyebrow">Hybrid Search Console</div>
+        <h1 class="app-header__title">{% block page_title %}ハイブリッド検索{% endblock %}</h1>
+        <p class="app-header__copy">{% block page_copy %}検索と運用確認を同じコンソールで扱います。{% endblock %}</p>
+      </div>
+      <div class="admin-header__actions">
+        <div class="admin-segmented">
+          <a href="/ui/" {% if active == 'search-user' %}aria-current="page"{% endif %}>一般</a>
+          <a href="/ui/dev" {% if active == 'search-dev' %}aria-current="page"{% endif %}>開発</a>
+          {% if page_mode == 'dev' %}
+            <a href="/ui/dev/ops" {% if active == 'ops' %}aria-current="page"{% endif %}>Ops</a>
+          {% endif %}
+        </div>
+        <button class="secondary admin-user-chip" type="button" aria-label="現在のテーマ">
+          <span class="admin-avatar" aria-hidden="true">H</span>
+          <span class="admin-user__meta">
+            <strong>Phase 7</strong>
+            <small>GKE + KServe</small>
+          </span>
+          <span class="admin-user-chip__caret" aria-hidden="true">▾</span>
+        </button>
+      </div>
+    </header>
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script>
+  (() => {
+    const body = document.body;
+    const open = () => body.setAttribute("data-sidebar-open", "true");
+    const close = () => body.setAttribute("data-sidebar-open", "false");
+    document.querySelector("[data-sidebar-toggle]")?.addEventListener("click", open);
+    document.querySelector("[data-sidebar-backdrop]")?.addEventListener("click", close);
+    document.querySelector("[data-sidebar-close]")?.addEventListener("click", close);
+  })();
+</script>
+</body>
+</html>

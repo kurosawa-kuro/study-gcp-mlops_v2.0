@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}モデル精度 · ハイブリッド検索 Console{% endblock %}
+{% block page_title %}モデル精度{% endblock %}
+{% block page_copy %}`/model/metrics` の評価結果を、template ベースの card と table で確認します。{% endblock %}
+
+{% block content %}
+  <section class="admin-content admin-stack">
+  <article class="admin-card">
+    <div class="admin-card__body">
+    <form id="acc-form" onsubmit="event.preventDefault(); runEval();">
+      <label>
+        cutoff (k)
+        <input id="q-k" type="number" min="1" max="100" value="{{ default_k }}">
+      </label>
+      <button type="submit" id="acc-btn">評価実行</button>
+    </form>
+    </div>
+  </article>
+
+  <article id="acc-summary-card" class="admin-card" hidden>
+    <div class="admin-card__body">
+    <div class="admin-section-heading">
+      <div>
+        <div class="admin-eyebrow">Metrics</div>
+        <h2>サマリ</h2>
+      </div>
+      <p><small id="acc-meta"></small></p>
+    </div>
+    <div class="admin-grid admin-grid--3">
+      <article class="admin-card admin-card--compact admin-card--dense"><div class="admin-card__body admin-kpi admin-kpi--dense"><span class="admin-eyebrow">Ranking</span><strong id="acc-ndcg" class="admin-kpi__value">-</strong><div class="admin-kpi__meta"><span>NDCG@k</span></div></div></article>
+      <article class="admin-card admin-card--compact admin-card--dense"><div class="admin-card__body admin-kpi admin-kpi--dense"><span class="admin-eyebrow">Coverage</span><strong id="acc-hit" class="admin-kpi__value">-</strong><div class="admin-kpi__meta"><span>HitRate@k</span></div></div></article>
+      <article class="admin-card admin-card--compact admin-card--dense"><div class="admin-card__body admin-kpi admin-kpi--dense"><span class="admin-eyebrow">Order</span><strong id="acc-mrr" class="admin-kpi__value">-</strong><div class="admin-kpi__meta"><span>MRR@k</span></div></div></article>
+    </div>
+    </div>
+  </article>
+
+  <article id="acc-cases-card" class="admin-card" hidden>
+    <div class="admin-card__body">
+    <div class="admin-section-heading">
+      <div><div class="admin-eyebrow">Cases</div><h2>ケース別</h2></div>
+    </div>
+    <div class="admin-table-wrap table-scroll">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>name</th><th>query</th><th>returned</th><th>matched</th><th>NDCG@k</th><th>HitRate@k</th><th>MRR@k</th>
+        </tr>
+      </thead>
+      <tbody id="acc-rows"></tbody>
+    </table>
+    </div>
+    </div>
+  </article>
+  </section>
+
+<script>
+  async function runEval() {
+    const btn = document.getElementById("acc-btn");
+    btn.setAttribute("aria-busy", "true");
+    try {
+      const k = parseInt(document.getElementById("q-k").value, 10) || 10;
+      const res = await fetch(`/model/metrics?k=${k}`);
+      const body = await res.json();
+      if (!res.ok) {
+        document.getElementById("acc-meta").textContent = `error: HTTP ${res.status} ${JSON.stringify(body)}`;
+        document.getElementById("acc-summary-card").hidden = false;
+        return;
+      }
+      document.getElementById("acc-summary-card").hidden = false;
+      document.getElementById("acc-cases-card").hidden = false;
+      document.getElementById("acc-meta").textContent = `cases=${body.num_cases} · k=${body.k} · file=${body.cases_file}`;
+      document.getElementById("acc-ndcg").textContent = body.summary.ndcg_at_k.toFixed(4);
+      document.getElementById("acc-hit").textContent = body.summary.hit_rate_at_k.toFixed(4);
+      document.getElementById("acc-mrr").textContent = body.summary.mrr_at_k.toFixed(4);
+      const tbody = document.getElementById("acc-rows");
+      tbody.innerHTML = "";
+      body.per_case.forEach((c) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><code>${c.name}</code></td>
+          <td>${c.query}</td>
+          <td>${c.returned}</td>
+          <td>${c.matched_in_results} / ${c.relevant_total}</td>
+          <td>${c.ndcg_at_k.toFixed(4)}</td>
+          <td>${c.hit_rate_at_k.toFixed(4)}</td>
+          <td>${c.mrr_at_k.toFixed(4)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } finally {
+      btn.removeAttribute("aria-busy");
+    }
+  }
+  // 初回表示時に自動実行
+  runEval();
+</script>
+{% endblock %}

@@ -1,0 +1,7 @@
+# AUTO-GENERATED from env/config/setting.yaml — do NOT edit by hand.
+# Run `make sync-dataform-config` to regenerate after changing setting.yaml.
+defaultProject: mlops-dev-a
+defaultLocation: asia-northeast1
+defaultDataset: feature_mart
+defaultAssertionDataset: feature_mart_assertions
+dataformCoreVersion: 3.0.0

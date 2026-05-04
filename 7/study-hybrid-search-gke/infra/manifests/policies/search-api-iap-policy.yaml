@@ -1,0 +1,32 @@
+# IAP backend policy.
+#
+# `enabled: false` を **dev デフォルト** とした理由 (Phase 7 Run 1):
+#   IAP を有効にするには (a) GCP Console で OAuth consent screen を Internal/External
+#   いずれかで設定し (b) `gcloud iap oauth-clients create` で OAuth client を作って
+#   client_id をここに貼り (c) client_secret を Secret Manager の
+#   `search-api-iap-oauth-client-secret` に投入する 3 ステップ手作業が必要。
+#   PDCA dev project を `destroy-all → deploy-all` で何度も回す前提では不適当
+#   (OAuth consent screen は project レベルで残存するが client は再作成が必要)。
+#   Run 1 では `enabled: true` + placeholder の組み合わせで GCPBackendPolicy が
+#   `Invalid: oauth2ClientSecret cannot be found` 状態になり、Gateway が
+#   `GatewayHealthy=False` warning を出し続けた。
+#
+# Production / staging への切り替え手順は docs/runbook/05_運用.md の「IAP 有効化」章を参照。
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: search-api-iap
+  namespace: search
+spec:
+  default:
+    iap:
+      enabled: false
+      # 値は IAP 有効化時に環境別 overlay で実値に書き換える。
+      # `enabled: false` の間はこの 2 フィールドは LB controller に参照されない。
+      clientID: "CHANGE_ME_OAUTH_CLIENT_ID"
+      oauth2ClientSecret:
+        name: search-api-iap-oauth-client-secret
+  targetRef:
+    group: ""
+    kind: Service
+    name: search-api

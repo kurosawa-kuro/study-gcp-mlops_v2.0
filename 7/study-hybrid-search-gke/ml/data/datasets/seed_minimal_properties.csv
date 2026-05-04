@@ -1,0 +1,6 @@
+property_id,title,city,ward,rent,layout,walk_min,age_years,area_m2,pet_ok
+p001,新宿区西新宿 1LDK,東京都,新宿区,120000,1LDK,5,8,35.0,True
+p002,渋谷区道玄坂 ワンルーム,東京都,渋谷区,95000,1R,3,12,22.0,False
+p003,品川区五反田 2LDK,東京都,品川区,165000,2LDK,7,5,50.0,True
+p004,港区赤羽橋 1K,東京都,港区,110000,1K,4,15,25.0,False
+p005,目黒区中目黒 2DK,東京都,目黒区,140000,2DK,6,10,42.0,True

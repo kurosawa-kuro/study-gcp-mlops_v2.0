@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "mlops-dev-a",
+  schema: "mlops",
+  name: "feedback_events",
+  description: "Infra-owned feedback events table (Terraform-managed in infra/terraform/modules/data/main.tf). Declared here so property_features_daily can aggregate from it."
+}

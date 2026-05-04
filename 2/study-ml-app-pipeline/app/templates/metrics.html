@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Metrics · California Housing{% endblock %}
+
+{% block content %}
+<div class="ml-page-header">
+  <div>
+    <h1>Model Metrics</h1>
+    <div class="sub">最新モデル（ml/registry/artifacts/latest）の精度</div>
+  </div>
+</div>
+
+<div class="ml-stack">
+  <div class="ml-card">
+    <div class="ml-card-title">Latest Run</div>
+    {% if metrics %}
+    <div class="ml-metric-grid">
+      <div class="ml-metric">
+        <div class="label">RMSE</div>
+        <div class="value">{{ "%.4f"|format(metrics.rmse) }}</div>
+      </div>
+      <div class="ml-metric">
+        <div class="label">R²</div>
+        <div class="value">{{ "%.4f"|format(metrics.r2) }}</div>
+      </div>
+    </div>
+    {% if metrics.run_id %}
+    <div class="ml-run-id">run_id: {{ metrics.run_id }}</div>
+    {% endif %}
+    {% else %}
+    <div class="ml-empty">
+      メトリクスファイルが見つかりません。<br>
+      先に <code>make train</code> を実行してください。
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+---
+description: study-gcp-mlops monorepo — phase model, safety, doc authority
+alwaysApply: true
+---
+
+# study-gcp-mlops (core)
+
+## Phase model
+
+- Seven numbered phases under `1/` … `7/`. **Treat each phase as an isolated workspace**: independent Python env, Makefile, and conventions. Do **not** copy commands or patterns from another phase without checking that phase’s docs.
+- **Canonical implementation** for the hybrid-search stack lives under `7/study-hybrid-search-gke/`. Older phases may be docs-only after intentional removal; infer from that phase’s `CLAUDE.md` / README.
+
+## Before editing code
+
+- Read **repository root** [`CLAUDE.md`](CLAUDE.md) and the **target phase** `<N>/.../CLAUDE.md`. Phase-local rules override generic repo guidance.
+- For Phase 7, start sprint context from [`7/study-hybrid-search-gke/docs/tasks/TASKS.md`](7/study-hybrid-search-gke/docs/tasks/TASKS.md). Doc precedence is described in root `CLAUDE.md` (roadmap > TASKS > architecture specs > README).
+
+## Non‑negotiable product constraints
+
+- Do **not** remove or replace the hybrid-search **five pillars** without explicit user agreement: Meilisearch BM25, multilingual-e5, vector retrieval (BQ `VECTOR_SEARCH` or Vertex Vector Search by phase), RRF, LightGBM LambdaRank.
+- **Out of scope for the curriculum** (do not introduce): Agent Builder, Vizier, Model Garden, Gemini RAG (see root `README.md`).
+- Phase 6 rule of thumb: do **not** change core `/search` default behaviour unless the user explicitly asks; Phase 7 follows its own `CLAUDE.md` for canonical completion criteria.
+
+## Quality and verification
+
+- After non-trivial changes, run the phase’s checks (see root `CLAUDE.md` “コマンド早見”): e.g. Phase 4/5/6/7 `make check`; Phase 1/2 `make test`; Phase 3 `make test` + layer checks as documented.
+- Prefer **small, purposeful diffs** and one primary intent per change set.
+
+## Security and destructive actions
+
+- Never print or suggest embedding **secrets**: `.env`, API keys, tokens, SA JSON, Secret Manager payload contents.
+- Do **not** run or instruct **destructive production operations** (`terraform apply`, production DB writes, shared `main` branch force-push) unless the user clearly requests them. **Exception**: Phase 7 documents **pre-approved** automation scope for project `mlops-dev-a` only — follow [`7/study-hybrid-search-gke/CLAUDE.md`](7/study-hybrid-search-gke/CLAUDE.md) for boundaries.
+
+## Archives
+
+- Do not modify `OLD-study-gcp-mlops-hybrid-search-vertex/` or archive trees unless the user explicitly asks.

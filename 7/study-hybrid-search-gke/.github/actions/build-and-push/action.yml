@@ -1,0 +1,45 @@
+name: Build and push image
+description: Build a Docker image and push it to Artifact Registry, tagged with the short commit SHA.
+
+inputs:
+  region:
+    description: Artifact Registry region (e.g. asia-northeast1)
+    required: true
+  project_id:
+    description: GCP project ID hosting the AR repository
+    required: true
+  repo:
+    description: AR repository name
+    required: true
+  image:
+    description: Image name within the AR repository
+    required: true
+  dockerfile:
+    description: Path to the Dockerfile (relative to workspace root)
+    required: true
+  context:
+    description: Build context directory (defaults to repo root)
+    required: false
+    default: "."
+
+outputs:
+  image_uri:
+    description: Full image URI with :sha-short tag
+    value: ${{ steps.tag.outputs.uri }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute image URI
+      id: tag
+      shell: bash
+      run: |
+        echo "uri=${{ inputs.region }}-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.repo }}/${{ inputs.image }}:${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+    - name: Build image
+      shell: bash
+      run: docker build -f ${{ inputs.dockerfile }} -t "${{ steps.tag.outputs.uri }}" ${{ inputs.context }}
+
+    - name: Push image
+      shell: bash
+      run: docker push "${{ steps.tag.outputs.uri }}"

@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-api
+  namespace: search
+  labels:
+    app.kubernetes.io/name: search-api
+    app.kubernetes.io/part-of: hybrid-search
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: search-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: search-api
+    spec:
+      # KSA は terraform module/kserve が作成 (Workload Identity 注釈付き)
+      serviceAccountName: search-api
+      containers:
+        - name: search-api
+          # CI / scripts/deploy/api_gke.py が Artifact Registry イメージへ差し替える
+          image: gcr.io/cloudrun/hello
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          env:
+            - name: PROJECT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: project_id
+            - name: GCS_MODELS_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: models_bucket
+            - name: MEILI_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: meili_base_url
+            # `meili-master-key` Secret は External Secrets Operator が
+            # GCP Secret Manager (`meili-master-key`) から `search`
+            # namespace に同期する。Pod は生成済み K8s Secret を読むだけに
+            # 留め、Secret Manager SDK を直接持たない。
+            - name: MEILI_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: meili-master-key
+                  key: MEILI_MASTER_KEY
+            - name: RANKING_LOG_TOPIC
+              value: "ranking-log"
+            - name: FEEDBACK_TOPIC
+              value: "search-feedback"
+            - name: RETRAIN_TOPIC
+              value: "retrain-trigger"
+            - name: ENABLE_SEARCH
+              value: "true"
+            - name: ENABLE_RERANK
+              value: "true"
+            # KServe InferenceService の cluster-local エンドポイント
+            # KServe RawDeployment が作る Service は `<isvc-name>-predictor`
+            # 命名 (Phase 7 Run 1 B15+) — `property-encoder` ではなく
+            # `property-encoder-predictor` を指す必要がある。
+            # encoder は Phase 7 Run 2 で KServe HuggingFace stock runtime
+            # (`kserve/huggingfaceserver`, task=text_embedding) に切替済み
+            # → v1 protocol path (`/v1/models/model:predict`、HF runtime default
+            # の model_name=`model`)。旧 Vertex CPR 規約の `/predict` は
+            # 404 を返す (infra/manifests/kserve/encoder.yaml の切替コメント参照)。
+            # reranker は KServe stock MLServer LightGBM runtime → v2 protocol
+            # (`/v2/models/<name>/infer`、Phase 7 Run 1 B18 で v1 から修正)。
+            # TreeSHAP explain は stock runtime では返らないため、専用の
+            # `property-reranker-explain` Service へ別 URL で逃がす。
+            - name: KSERVE_ENCODER_URL
+              value: "http://property-encoder-predictor.kserve-inference.svc.cluster.local/v1/models/model:predict"
+            - name: KSERVE_RERANKER_URL
+              value: "http://property-reranker-predictor.kserve-inference.svc.cluster.local/v2/models/property-reranker/infer"
+            - name: KSERVE_RERANKER_EXPLAIN_URL
+              value: "http://property-reranker-explain.kserve-inference.svc.cluster.local/explain"
+            - name: KSERVE_PREDICT_TIMEOUT_SECONDS
+              value: "30.0"
+            # =================================================================
+            # Phase 7 W2-8 完了: Vertex Vector Search / Feature Online Store の
+            # canonical 経路の resource ID / endpoint だけを ConfigMap から注入。
+            # `semantic_backend` / `feature_fetcher_backend` のような backend
+            # 切替 selector は撤去済。空のまま起動すると container build 時に
+            # `RuntimeError` で fail-loud (silent fallback はしない)。
+            # =================================================================
+            - name: VERTEX_VECTOR_SEARCH_INDEX_ENDPOINT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: vertex_vector_search_index_endpoint_id
+            - name: VERTEX_VECTOR_SEARCH_DEPLOYED_INDEX_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: vertex_vector_search_deployed_index_id
+            - name: VERTEX_FEATURE_ONLINE_STORE_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: vertex_feature_online_store_id
+            - name: VERTEX_FEATURE_VIEW_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: vertex_feature_view_id
+            - name: VERTEX_FEATURE_ONLINE_STORE_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: vertex_feature_online_store_endpoint
+          startupProbe:
+            httpGet:
+              path: /livez
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            # /readyz は health_handler.py の readyz() で
+            # container.candidate_retriever と container.encoder_client が両方
+            # wired か確認する。readinessProbe を /livez (常時 200) に向けると
+            # Container 構築途中の Pod に kube-proxy がトラフィックを流し込み、
+            # /search が 503 / 500 を返してユーザに見える bug になる。
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}運用チェック · ハイブリッド検索 UI{% endblock %}
+{% block page_title %}運用チェック{% endblock %}
+{% block page_copy %}`destroy-all` 後の削除漏れ、検索件数、直近学習 run を同じ運用コンソールで確認します。{% endblock %}
+
+{% block content %}
+  <section class="admin-content admin-stack">
+  <article class="panel admin-card">
+    <div class="admin-card__body action-row">
+      <button id="ops-btn" type="button" onclick="loadOpsCheck()">再読込</button>
+      <p id="ops-meta" class="search-state">GCP 上の残存リソースを確認します。</p>
+    </div>
+  </article>
+
+  <section class="admin-grid admin-grid--3 status-grid">
+    <article class="status-card admin-card admin-card--compact admin-card--dense">
+      <span class="status-label">OK</span>
+      <strong id="ops-ok">-</strong>
+    </article>
+    <article class="status-card admin-card admin-card--compact admin-card--dense">
+      <span class="status-label">WARN</span>
+      <strong id="ops-warn">-</strong>
+    </article>
+    <article class="status-card status-card-danger admin-card admin-card--compact admin-card--dense">
+      <span class="status-label">FAIL / ERROR</span>
+      <strong id="ops-bad">-</strong>
+    </article>
+  </section>
+
+  <section class="admin-grid admin-grid--3 status-grid">
+    <article class="status-card admin-card admin-card--compact admin-card--dense">
+      <span class="status-label">SEARCH 24H</span>
+      <strong id="ops-search-volume">-</strong>
+      <small id="ops-search-window" class="status-note">-</small>
+    </article>
+    <article class="status-card status-card-wide admin-card admin-card--compact admin-card--dense">
+      <span class="status-label">RECENT TRAIN RUNS</span>
+      <strong id="ops-runs-count">-</strong>
+      <small class="status-note">直近 5 件</small>
+    </article>
+  </section>
+
+  <article class="panel admin-card">
+    <div class="admin-card__body">
+    <div class="admin-section-heading">
+      <div>
+        <p class="eyebrow">Training Runs</p>
+        <h2>直近の学習実行</h2>
+      </div>
+      <p class="section-copy"><code>training_runs</code> の latest preview です。</p>
+    </div>
+    <div class="admin-table-wrap table-scroll">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>run_id</th>
+            <th>finished_at</th>
+            <th>ndcg@10</th>
+            <th>map</th>
+            <th>recall@20</th>
+            <th>model_path</th>
+          </tr>
+        </thead>
+        <tbody id="ops-runs-rows">
+          <tr><td colspan="6">loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </article>
+
+  <section id="ops-findings" class="admin-grid admin-grid--2"></section>
+  </section>
+
+<script>
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function renderFinding(finding) {
+    const items = (finding.items || []).length
+      ? `<ul class="ops-item-list">${finding.items.map((item) => `<li><code>${escapeHtml(item)}</code></li>`).join("")}</ul>`
+      : "";
+    const note = finding.note ? `<p class="section-copy">${escapeHtml(finding.note)}</p>` : "";
+    return `
+      <article class="panel admin-card ops-panel ops-panel-${String(finding.severity || "ok").toLowerCase()}">
+        <div class="admin-card__body">
+        <div class="admin-section-heading">
+          <div>
+            <p class="eyebrow">${escapeHtml(finding.severity)}</p>
+            <h2>${escapeHtml(finding.label)}</h2>
+          </div>
+        </div>
+        ${note}
+        ${items || `<p class="search-state">対象なし</p>`}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderRunRow(run) {
+    return `
+      <tr>
+        <td><code>${escapeHtml(run.run_id || "")}</code></td>
+        <td>${escapeHtml(run.finished_at || "")}</td>
+        <td>${run.ndcg_at_10 == null ? "" : Number(run.ndcg_at_10).toFixed(4)}</td>
+        <td>${run.map_score == null ? "" : Number(run.map_score).toFixed(4)}</td>
+        <td>${run.recall_at_20 == null ? "" : Number(run.recall_at_20).toFixed(4)}</td>
+        <td><code>${escapeHtml(run.model_path || "")}</code></td>
+      </tr>
+    `;
+  }
+
+  async function parseResponseBody(res) {
+    const raw = await res.text();
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { detail: raw || `HTTP ${res.status}` };
+    }
+  }
+
+  async function loadOpsCheck() {
+    const btn = document.getElementById("ops-btn");
+    const meta = document.getElementById("ops-meta");
+    const root = document.getElementById("ops-findings");
+    btn.setAttribute("aria-busy", "true");
+    meta.textContent = "確認中です...";
+    try {
+      const [destroyRes, volumeRes, runsRes] = await Promise.all([
+        fetch("/ops/destroy-check"),
+        fetch("/ops/search-volume"),
+        fetch("/ops/runs-recent"),
+      ]);
+      const [destroyBody, volumeBody, runsBody] = await Promise.all([
+        parseResponseBody(destroyRes),
+        parseResponseBody(volumeRes),
+        parseResponseBody(runsRes),
+      ]);
+      if (!destroyRes.ok) {
+        meta.textContent = `error: HTTP ${destroyRes.status}`;
+        root.innerHTML = `<article class="panel"><pre>${escapeHtml(JSON.stringify(destroyBody, null, 2))}</pre></article>`;
+        return;
+      }
+      document.getElementById("ops-ok").textContent = destroyBody.summary.ok;
+      document.getElementById("ops-warn").textContent = destroyBody.summary.warn;
+      document.getElementById("ops-bad").textContent = destroyBody.summary.fail + destroyBody.summary.error;
+      meta.textContent = `${destroyBody.project_id} / ${destroyBody.region} / passed=${destroyBody.summary.passed}`;
+      root.innerHTML = (destroyBody.findings || []).map(renderFinding).join("");
+
+      if (volumeRes.ok) {
+        document.getElementById("ops-search-volume").textContent = volumeBody.requests_24h;
+        document.getElementById("ops-search-window").textContent =
+          `${volumeBody.first_ts || "-"} -> ${volumeBody.last_ts || "-"}`;
+      } else {
+        document.getElementById("ops-search-volume").textContent = "error";
+        document.getElementById("ops-search-window").textContent =
+          volumeBody.detail || `HTTP ${volumeRes.status}`;
+      }
+
+      const runs = (runsRes.ok ? runsBody.runs : []) || [];
+      document.getElementById("ops-runs-count").textContent = runs.length;
+      const runsErrorText = escapeHtml(runsBody.detail || `HTTP ${runsRes.status}`);
+      document.getElementById("ops-runs-rows").innerHTML = runs.length
+        ? runs.map(renderRunRow).join("")
+        : `<tr><td colspan="6">${runsRes.ok ? "rows not found" : runsErrorText}</td></tr>`;
+    } catch (err) {
+      meta.textContent = `error: ${err}`;
+    } finally {
+      btn.removeAttribute("aria-busy");
+    }
+  }
+
+  loadOpsCheck();
+</script>
+{% endblock %}

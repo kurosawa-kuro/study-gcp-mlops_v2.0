@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "name": "sample-shinjuku-1ldk",
+      "query": "新宿区西新宿 1LDK",
+      "filters": {"max_rent": 150000},
+      "top_k": 20,
+      "relevant_property_ids": ["p001"]
+    },
+    {
+      "name": "sample-shinjuku-wide",
+      "query": "新宿 1LDK",
+      "filters": {"max_rent": 200000},
+      "top_k": 20,
+      "relevant_property_ids": ["p001"]
+    }
+  ]
+}

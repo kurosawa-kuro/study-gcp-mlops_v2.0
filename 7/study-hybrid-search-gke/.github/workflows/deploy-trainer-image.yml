@@ -1,0 +1,53 @@
+name: Deploy Trainer Image
+
+# Phase 10: builds the KFP trainer container image (LightGBM LambdaRank).
+# Picked up by the train_reranker component in pipelines/ whenever the image
+# tag is pinned to :latest or updated in the KFP template.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ml/training/**
+      - ml/common/**
+      - ml/data/**
+      - ml/registry/**
+      - ml/evaluation/**
+      - infra/run/jobs/training/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/deploy-trainer-image.yml
+      - .github/actions/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-northeast1
+  PROJECT_ID: mlops-dev-a
+  REPO: mlops
+  IMAGE: property-trainer
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          configure_docker: "true"
+
+      - uses: ./.github/actions/build-and-push
+        with:
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          repo: ${{ env.REPO }}
+          image: ${{ env.IMAGE }}
+          dockerfile: infra/run/jobs/training/Dockerfile

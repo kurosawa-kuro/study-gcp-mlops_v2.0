@@ -1,0 +1,104 @@
+name: Terraform
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [infra/**, .github/workflows/terraform.yml, .github/actions/**]
+  push:
+    branches: [main]
+    paths: [infra/**, .github/workflows/terraform.yml, .github/actions/**]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  PROJECT_ID: mlops-dev-a
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform fmt check
+        run: terraform -chdir=infra/terraform/environments/dev fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform -chdir=infra/terraform/environments/dev init -input=false
+
+      - name: Terraform validate
+        run: terraform -chdir=infra/terraform/environments/dev validate -no-color
+
+      - name: Terraform plan
+        id: plan
+        run: |
+          terraform -chdir=infra/terraform/environments/dev plan -no-color \
+            -var="github_repo=${{ github.repository }}" \
+            -var="oncall_email=${{ vars.ONCALL_EMAIL }}" \
+            -out=tfplan
+
+      - name: Comment PR with plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          PLAN_TEXT: ${{ steps.plan.outputs.stdout }}
+        with:
+          script: |
+            const text = (process.env.PLAN_TEXT || 'Plan output not available');
+            const truncated = text.length > 60000 ? text.substring(0, 60000) + '\n...(truncated)' : text;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan\n\`\`\`\n${truncated}\n\`\`\``
+            });
+
+      - name: Upload plan artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: infra/terraform/environments/dev/tfplan
+          retention-days: 5
+
+  apply:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform init
+        run: terraform -chdir=infra/terraform/environments/dev init -input=false
+
+      - name: Terraform apply
+        run: |
+          terraform -chdir=infra/terraform/environments/dev apply -auto-approve -input=false \
+            -var="github_repo=${{ github.repository }}" \
+            -var="oncall_email=${{ vars.ONCALL_EMAIL }}"

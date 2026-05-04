@@ -1,0 +1,37 @@
+# Cloud Build config for the search-api image used by `make deploy-api`。
+# Substitution `_IMAGE_URI` は `<sha>-<epoch>` 付き immutable tag。
+# scripts/deploy/api_gke.py から渡される。
+#
+# Build context = repository root。Dockerfile は infra/run/services/search_api/Dockerfile。
+#
+# Phase 7 で kaniko に切り替えた:
+#   - 1 回目: ~12-15 分 (pyproject.toml split で venv が ~5GB → ~500MB に縮んだので
+#     upload bandwidth bound だった部分が短縮)
+#   - 2 回目以降 (app コードのみ変更): kaniko layer cache hit で ~3-5 分
+#   - cache は AR 内の `<image>/cache` tag に保存され 24h で expire
+# 旧来の `gcr.io/cloud-builders/docker build` だと Cloud Build には layer cache が
+# 効かないため、毎回 fresh build = 17 分超かかっていた。
+#
+# kaniko は --mount=type=cache (BuildKit feature) をサポートしないが、
+# RUN-instruction 単位の layer cache が効くため、pyproject.toml/uv.lock が
+# 変わらない限り `uv sync` step はスキップされる。
+# ローカル build (`make deploy-api-local`) は docker buildx 経由で
+# --mount=type=cache まで含めた fine-grained cache を使う。
+
+steps:
+  - name: gcr.io/kaniko-project/executor:v1.20.0
+    args:
+      - --destination=${_IMAGE_URI}
+      - --dockerfile=infra/run/services/search_api/Dockerfile
+      - --context=dir:///workspace
+      - --cache=true
+      - --cache-ttl=24h
+      - --use-new-run
+
+# kaniko が image push まで実施するため、`images:` は不要 (Cloud Build の duplicate push を防ぐ)。
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _IMAGE_URI: ""

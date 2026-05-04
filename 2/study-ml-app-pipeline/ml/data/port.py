@@ -1,0 +1,9 @@
+"""Dataset outbound port."""
+
+from typing import Any, Protocol
+
+
+class DatasetReader(Protocol):
+    def load(self, split: str) -> Any: ...
+    def write(self, split: str, frame: Any) -> None: ...
+    def write_predictions(self, run_id: str, frame: Any) -> None: ...

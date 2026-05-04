@@ -1,0 +1,52 @@
+name: Deploy Encoder Image
+
+# Phase 10: builds the Vertex AI encoder CPR container image and pushes to
+# Artifact Registry. The image is only picked up by Vertex AI when a Model
+# upload + Endpoint deploy is executed (aiplatform.Model.upload /
+# aiplatform.Model.deploy) from scripts/setup or the KFP embed_pipeline.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ml/serving/**
+      - ml/common/**
+      - ml/registry/**
+      - infra/run/services/encoder/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/deploy-encoder-image.yml
+      - .github/actions/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-northeast1
+  PROJECT_ID: mlops-dev-a
+  REPO: mlops
+  IMAGE: property-encoder
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-gcp
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          configure_docker: "true"
+
+      - uses: ./.github/actions/build-and-push
+        with:
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          repo: ${{ env.REPO }}
+          image: ${{ env.IMAGE }}
+          dockerfile: infra/run/services/encoder/Dockerfile

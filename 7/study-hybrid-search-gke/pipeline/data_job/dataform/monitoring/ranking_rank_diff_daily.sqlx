@@ -1,0 +1,18 @@
+config {
+  type: "table",
+  schema: "mlops",
+  name: "ranking_rank_diff_daily",
+  description: "Daily monitoring for lexical/semantic rank alignment in ranking_log schema v2.",
+  tags: ["monitoring", "ranking"]
+}
+
+SELECT
+  CURRENT_DATE("Asia/Tokyo") AS run_date,
+  COUNT(*) AS row_count,
+  CORR(CAST(lexical_rank AS FLOAT64), CAST(semantic_rank AS FLOAT64)) AS corr_lexical_semantic,
+  AVG(CAST(rrf_rank AS FLOAT64)) AS mean_rrf_rank
+FROM `mlops-dev-a.mlops.ranking_log`
+WHERE DATE(ts, "Asia/Tokyo") = CURRENT_DATE("Asia/Tokyo")
+  AND schema_version >= 2
+  AND lexical_rank IS NOT NULL
+  AND semantic_rank IS NOT NULL;

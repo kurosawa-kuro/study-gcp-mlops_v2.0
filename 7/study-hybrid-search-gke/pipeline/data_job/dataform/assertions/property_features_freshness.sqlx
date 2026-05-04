@@ -1,0 +1,15 @@
+config {
+  type: "assertion",
+  schema: "feature_mart_assertions",
+  name: "property_features_freshness",
+  description: "Ensure property_features_daily has rows partitioned within the last 2 days.",
+  tags: ["properties", "assertion", "ranker"],
+  dependencies: ["property_features_daily"]
+}
+
+SELECT 1 AS stale
+FROM (
+  SELECT MAX(event_date) AS latest
+  FROM ${ref("property_features_daily")}
+)
+WHERE latest IS NULL OR latest < DATE_SUB(CURRENT_DATE("Asia/Tokyo"), INTERVAL 2 DAY)

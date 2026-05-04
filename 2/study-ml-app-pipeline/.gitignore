@@ -1,0 +1,27 @@
+# Environment
+.env
+env/secret/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Data
+data/*.db
+
+# Models
+ml/registry/artifacts/*
+!ml/registry/artifacts/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+tea_debug.log
+
+# Playwright
+test-results/
+playwright-report/
+.playwright/

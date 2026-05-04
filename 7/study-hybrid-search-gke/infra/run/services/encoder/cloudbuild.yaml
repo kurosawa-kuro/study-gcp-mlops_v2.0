@@ -1,0 +1,27 @@
+# Cloud Build config for the property-encoder image (Vertex CPR style FastAPI
+# server hosting multilingual-e5-base). KServe InferenceService for encoder
+# uses this image as `containers[0].image`. ME5 weights are NOT baked in —
+# they are downloaded at startup from `AIP_STORAGE_URI` (GCS) which is
+# patched by `scripts/deploy/kserve_models.py`.
+#
+# Substitution `_IMAGE_URI` is the AR target with immutable tag.
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=infra/run/services/encoder/Dockerfile
+      - --tag=${_IMAGE_URI}
+      - .
+
+images:
+  - ${_IMAGE_URI}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+timeout: 1800s
+
+substitutions:
+  _IMAGE_URI: ""
