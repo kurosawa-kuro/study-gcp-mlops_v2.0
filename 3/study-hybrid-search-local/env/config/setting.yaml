@@ -1,0 +1,40 @@
+# Phase 3 (Local hybrid search) — non-credential config.
+# pydantic-settings (yaml) で読み込まれる。クレデンシャルは env/secret/credential.yaml に分離。
+
+# --- API ---
+api_host: "0.0.0.0"
+api_port: 8000
+enable_search: true
+
+# --- 検索パラメータ (中核挙動) ---
+top_k_default: 10
+rrf_k: 60
+candidate_pool_size: 100   # lexical + semantic で取得する候補数
+
+# --- Meilisearch ---
+meili_base_url: "http://meilisearch:7700"
+meili_index_name: "properties"
+# master key は credential.yaml で渡す
+meili_api_key_env: "MEILI_MASTER_KEY"
+
+# --- PostgreSQL ---
+postgres_dsn_env: "POSTGRES_DSN"
+
+# --- Redis (キャッシュ) ---
+redis_url: "redis://redis:6379/0"
+redis_cache_ttl_seconds: 60
+
+# --- multilingual-e5 encoder (in-process) ---
+# small (384 dim, ~470MB) を default にして CPU + 8GB 環境でも動かす。
+# base (768 dim, ~1GB) に変える場合は migrations の vector(384) を vector(768) に変更。
+e5_model_name: "intfloat/multilingual-e5-small"
+e5_embedding_dim: 384
+e5_max_seq_length: 512
+
+# --- LightGBM reranker ---
+model_artifacts_root: "ml/registry/artifacts"
+# 起動時に latest を参照、なければ /search は fallback (lexical_rank をそのまま final_rank に)。
+reranker_model_filename: "model.lgb"
+
+# --- Logging ---
+log_level: "INFO"

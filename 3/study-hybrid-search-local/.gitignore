@@ -1,0 +1,38 @@
+# Phase 3 phase-local .gitignore (root .gitignore のフォールバック上に追加)。
+
+# --- Python / uv ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+
+# --- カバレッジ ---
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# --- ML 学習成果物 (run_id ごと) ---
+ml/registry/artifacts/
+
+# --- ログ ---
+logs/
+*.log
+
+# --- Docker / 環境変数 ---
+.env
+.env.*
+!.env.example
+
+# --- シークレット ---
+env/secret/credential.yaml
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store

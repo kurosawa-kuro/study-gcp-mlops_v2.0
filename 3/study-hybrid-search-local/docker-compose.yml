@@ -1,0 +1,140 @@
+name: study-hybrid-search-local
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: phase3-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hybrid_search
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./definitions/postgres/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d hybrid_search"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    container_name: phase3-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-phase3-local-master-key}
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:7700/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: phase3-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  seed:
+    build:
+      context: .
+      dockerfile: infra/run/jobs/pipeline/Dockerfile
+    container_name: phase3-seed
+    environment:
+      POSTGRES_DSN: postgresql://admin:${POSTGRES_PASSWORD:-password}@postgres:5432/hybrid_search
+      MEILI_BASE_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-phase3-local-master-key}
+      E5_MODEL_NAME: ${E5_MODEL_NAME:-intfloat/multilingual-e5-small}
+      MODEL_ARTIFACTS_ROOT: /app/ml/registry/artifacts
+    volumes:
+      - ./ml/registry/artifacts:/app/ml/registry/artifacts
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    command: ["python", "-m", "pipeline.data_job.main"]
+
+  trainer:
+    build:
+      context: .
+      dockerfile: infra/run/jobs/pipeline/Dockerfile
+    container_name: phase3-trainer
+    environment:
+      POSTGRES_DSN: postgresql://admin:${POSTGRES_PASSWORD:-password}@postgres:5432/hybrid_search
+      MODEL_ARTIFACTS_ROOT: /app/ml/registry/artifacts
+    volumes:
+      - ./ml/registry/artifacts:/app/ml/registry/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    command: ["python", "-m", "pipeline.training_job.main"]
+
+  evaluator:
+    build:
+      context: .
+      dockerfile: infra/run/jobs/pipeline/Dockerfile
+    container_name: phase3-evaluator
+    environment:
+      POSTGRES_DSN: postgresql://admin:${POSTGRES_PASSWORD:-password}@postgres:5432/hybrid_search
+      MODEL_ARTIFACTS_ROOT: /app/ml/registry/artifacts
+    volumes:
+      - ./ml/registry/artifacts:/app/ml/registry/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python", "-m", "pipeline.evaluation_job.main"]
+
+  search-api:
+    build:
+      context: .
+      dockerfile: infra/run/services/api/Dockerfile
+    container_name: phase3-search-api
+    environment:
+      POSTGRES_DSN: postgresql://admin:${POSTGRES_PASSWORD:-password}@postgres:5432/hybrid_search
+      MEILI_BASE_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-phase3-local-master-key}
+      REDIS_URL: redis://redis:6379/0
+      E5_MODEL_NAME: ${E5_MODEL_NAME:-intfloat/multilingual-e5-small}
+      MODEL_ARTIFACTS_ROOT: /app/ml/registry/artifacts
+      ENABLE_SEARCH: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml/registry/artifacts:/app/ml/registry/artifacts:ro
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request as r; r.urlopen('http://localhost:8000/health', timeout=2)\" || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
+  meili_data:
+  hf_cache:
