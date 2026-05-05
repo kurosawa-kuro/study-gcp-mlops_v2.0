@@ -84,6 +84,9 @@ services:
     container_name: phase3-seed-synonyms
     environment:
       REDIS_URL: redis://redis:6379/0
+    volumes:
+      # 辞書 YAML は image に焼き込まない設計 (運用で内容を編集してすぐ流せるように)
+      - ./definitions/synonyms:/app/definitions/synonyms:ro
     depends_on:
       redis:
         condition: service_healthy

@@ -32,6 +32,15 @@ dependencies = [
     "google-cloud-pubsub>=2.23",
     "google-cloud-run>=0.10",
     "prometheus-fastapi-instrumentator>=7.0",
+    # --- Phase 7 SYN-1 — Redis 同義語辞書 (lexical query expansion) ---
+    # search-api Pod が ``redis.from_url`` で Cloud Memorystore に接続。
+    # ``synonym_backend=none`` なら接続せず NoopSynonymExpander にフォールバック
+    # するため import は遅延させてあるが、prod image には常に含める。
+    "redis>=5.0",
+    # ``scripts.ops.sync_synonyms`` が辞書 YAML をロードするのに必須。
+    # CLI を Cloud Run Job / Composer / kubectl exec から実行する場合、
+    # 同じ wheel に同梱されている必要があるので prod 同列で declare。
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -72,6 +81,9 @@ dev = [
     "mypy>=1.11",
     "types-requests",
     "types-cachetools",
+    # Phase 7 SYN-1 — type stubs for redis client + pyyaml (sync_synonyms CLI).
+    "types-redis",
+    "types-pyyaml",
     # httpx powers fastapi.testclient (starlette); needed by tests/unit/app.
     "httpx>=0.27",
 ]

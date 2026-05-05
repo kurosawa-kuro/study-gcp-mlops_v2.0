@@ -260,7 +260,7 @@ Wave 1 ではローカル完結のために一時的な backend 切替と fallba
 ## 5. Wave 3 — docs / reference architecture との整合 (確認のみ)
 
 - [ ] 本 phase [docs/01_仕様と設計.md](../architecture/01_仕様と設計.md) §「実案件想定の reference architecture」(Phase 5 docs を参照する旨) が最新であること — W2-8 削除と同期して再確認 (canonical 1 経路化後)
-- [ ] コードに `Elasticsearch` / `synonym` / `query expansion` 等の固有名が混入していないことを `scripts/ci/layers.py` の禁止語リスト (or grep based check) で守る — 任意の追加チェック (現状コード grep では hit 無しを 2026-05-02 終端で確認)
+- [x] ~~コードに `Elasticsearch` / `synonym` / `query expansion` 等の固有名が混入していないことを `scripts/ci/layers.py` の禁止語リスト (or grep based check) で守る — 任意の追加チェック (現状コード grep では hit 無しを 2026-05-02 終端で確認)~~ → **Phase 7 SYN-1 (2026-05-05) で意図的に解禁**: Redis 同義語辞書を `SynonymExpanderPort` + `RedisSynonymExpander` として本実装し、`synonym` / `query expansion` の固有名はコード・docs 双方に正規導入された。新 invariant: **synonym ロジックは `SynonymExpanderPort` 経由でのみ表現する** (concrete Redis 接続は `app/services/adapters/redis_synonym_expander.py` のみ、search_service / protocols / pure logic からの `import redis` は `scripts/ci/layers.py` の RULES で禁止)。Elasticsearch 固有名は引き続き未導入 (Meilisearch を学習用 substitute として継続)
 - [x] [docs/05_運用.md](../runbook/05_運用.md) の「semantic 経路」「feature 取得経路」記述は更新済
 
 ---

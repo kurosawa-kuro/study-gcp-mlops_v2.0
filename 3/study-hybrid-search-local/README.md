@@ -12,6 +12,23 @@ Phase 3 は、不動産ハイブリッド検索を **ローカル完結で学ぶ
 
 `Meilisearch` は `Elasticsearch` より導入しやすく、学習用ローカル構成として扱いやすいため採用する。
 
+## 動作イメージ
+
+`make build && make up && make seed && make train && docker compose up -d search-api` の後、
+ブラウザで http://localhost:8000/ にアクセス (自動で `/ui/` に redirect)。
+
+![ハイブリッド検索アプリ デモ](docs/images/ハイブリッド検索アプリ_960w_12fps.gif)
+
+### 検索前 / 検索後
+
+| 検索前 (空の状態) | 検索後 (3 段融合 + LightGBM rerank 結果) |
+|---|---|
+| [![検索前](docs/images/ハイブリッド検索アプリ_検索前.PNG)](docs/images/ハイブリッド検索アプリ_検索前.PNG) | [![検索後](docs/images/ハイブリッド検索アプリ_検索後.PNG)](docs/images/ハイブリッド検索アプリ_検索後.PNG) |
+
+検索結果の各カードには `lexical_rank` (Meilisearch BM25) / `semantic_rank` (pgvector ANN) /
+`final_rank` (LightGBM LambdaRank) が all non-zero で表示される — 3 系統が動いている証拠。
+`/feedback` (click / favorite / inquiry) を経由すれば再学習用の `feedback_events` に永続化される。
+
 ## Phase 3 の主役
 
 | 技術 | 役割 |

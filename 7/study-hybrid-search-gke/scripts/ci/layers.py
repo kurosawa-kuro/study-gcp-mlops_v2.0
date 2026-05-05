@@ -60,8 +60,11 @@ RULES: dict[str, frozenset[str]] = {
     "ml/evaluation/metrics/label_gain.py": ADAPTER_BANS
     | frozenset({"lightgbm", "pandas", "numpy"}),
     # --- app/services overrides (services have heterogeneous extra bans) ---
-    "app/services/ranking.py": ADAPTER_BANS | frozenset({"sentence_transformers"}),
-    "app/services/search_service.py": ADAPTER_BANS | frozenset({"sentence_transformers"}),
+    # Phase 7 SYN-1 — services must reach Redis only through ``SynonymExpanderPort``;
+    # the concrete redis client lives in ``app/services/adapters/redis_synonym_expander.py``.
+    "app/services/ranking.py": ADAPTER_BANS | frozenset({"sentence_transformers", "redis"}),
+    "app/services/search_service.py": ADAPTER_BANS
+    | frozenset({"sentence_transformers", "redis"}),
     # --- app/schemas (Pydantic + extra bans) ---
     "app/schemas/search.py": ADAPTER_BANS | frozenset({"lightgbm", "numpy"}),
 }
@@ -77,7 +80,8 @@ RULES: dict[str, frozenset[str]] = {
 DIRECTORY_RULES: dict[str, frozenset[str]] = {
     # app/ Ports + Domain + pure-logic services
     "app/domain/": ADAPTER_BANS | frozenset({"lightgbm"}),
-    "app/services/protocols/": ADAPTER_BANS | frozenset({"lightgbm"}),
+    # Phase 7 SYN-1 — Port files (Protocols) are SDK-free; redis stays in adapters.
+    "app/services/protocols/": ADAPTER_BANS | frozenset({"lightgbm", "redis"}),
     "app/services/noop_adapters/": ADAPTER_BANS,
     # app/api/ — routers + mappers + middleware + DI resolvers (no SDK)
     "app/api/routers/": ADAPTER_BANS,

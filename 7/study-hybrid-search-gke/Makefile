@@ -51,7 +51,7 @@ export PROJECT_ID REGION API_SERVICE ARTIFACT_REPO VERTEX_LOCATION PIPELINE_ROOT
         setup-pipeline-schedule \
         apply-manifests \
         deploy-all deploy-all-direct run-all destroy-all seed-test seed-test-clean \
-        sync-meili \
+        sync-meili sync-synonyms \
         train-smoke train-smoke-persist api-dev api-dev-hybrid clean \
         docker-auth deploy-api deploy-api-local deploy-kserve-models kube-creds \
         composer-deploy-dags build-composer-runner ops-composer-trigger ops-composer-list-runs ops-composer-task-states \
@@ -198,6 +198,35 @@ seed-test: ## Insert 5 test properties for PDCA smoke
 
 seed-test-clean: ## Drop the test seed data (benign if absent)
 	uv run python -m scripts.setup.seed_minimal_clean
+
+sync-synonyms: ## Phase 7 SYN-1 — Sync synonym dictionary YAML -> Cloud Memorystore for Redis
+	@# Phase 7 SYN-1 placeholder. Cloud Memorystore は VPC private IP のみで listen
+	@# しているので、本コマンドは **クラスタ外から直接到達不可**。実機運用では:
+	@#   1. ``make build-composer-runner`` 同様に専用 image を Artifact Registry に push
+	@#   2. ``gcloud run jobs create sync-synonyms-once --image=<repo>/sync-synonyms:latest``
+	@#      (VPC connector 経由で Memorystore に到達)
+	@#   3. ``gcloud run jobs execute sync-synonyms-once --wait``
+	@# とするか、kubectl exec で search-api Pod から ``python -m scripts.ops.sync_synonyms``
+	@# を叩く運用が前提。本 target は ``enable_redis_synonym=true`` でプロビジョニング
+	@# 済かどうかを `gcloud redis instances describe` で確認し、未プロビジョニング時は
+	@# exit 0 で skip (run-all-core 既定経路を壊さない)。
+	@REDIS_HOST=$$(gcloud redis instances describe phase7-synonym \
+	    --project=$(PROJECT_ID) --region=$(REGION) \
+	    --format='value(host)' 2>/dev/null); \
+	 if [ -z "$$REDIS_HOST" ]; then \
+	    echo "[skip] Memorystore phase7-synonym not provisioned (set enable_redis_synonym=true to opt in)" >&2; \
+	    exit 0; \
+	 fi; \
+	 REDIS_PORT=$$(gcloud redis instances describe phase7-synonym \
+	    --project=$(PROJECT_ID) --region=$(REGION) \
+	    --format='value(port)' 2>/dev/null); \
+	 export REDIS_AUTH=$$(gcloud secrets versions access latest \
+	    --secret=phase7-synonym-redis-auth --project=$(PROJECT_ID) 2>/dev/null || echo ""); \
+	 echo "==> sync-synonyms host=$$REDIS_HOST port=$$REDIS_PORT auth_len=$${#REDIS_AUTH}"; \
+	 echo "[note] Memorystore is VPC-private; this CLI must run from a Cloud Run Job, GKE Pod, or Cloud Shell with VPC SC."; \
+	 uv run python -m scripts.ops.sync_synonyms \
+	    --redis-url="redis://$$REDIS_HOST:$$REDIS_PORT/0" \
+	    --dictionary definitions/synonyms/real_estate_ja.yaml
 
 sync-meili: ## Sync feature_mart.properties_cleaned -> Meilisearch (run-all-core 用、PDCA dev 想定)
 	@# Phase 7 Run 2: meili-sync-once Cloud Run Job の image (`mlops/meili-sync:latest`) が
