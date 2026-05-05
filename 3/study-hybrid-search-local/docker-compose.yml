@@ -146,6 +146,12 @@ services:
       SYNONYM_BACKEND: "redis"
       SYNONYM_KEY_PREFIX: "syn:"
       SYNONYM_MAX_SYNONYMS_PER_TOKEN: "8"
+      # Phase 3 SYN-2 — /search レスポンスキャッシュ (UX / latency)。
+      # ``search_cache_backend=none`` で完全 OFF (毎回 live search)。
+      # TTL 60s は不動産検索の在庫変動 vs 体感速度のバランスから取った教材値。
+      SEARCH_CACHE_BACKEND: "redis"
+      SEARCH_CACHE_KEY_PREFIX: "search:"
+      SEARCH_CACHE_TTL_SECONDS: "60"
     ports:
       - "8000:8000"
     volumes:

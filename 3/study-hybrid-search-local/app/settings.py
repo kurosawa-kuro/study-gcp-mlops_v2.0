@@ -52,16 +52,25 @@ class ApiSettings(BaseSettings):
     # --- PostgreSQL ---
     postgres_dsn: str = "postgresql://admin:password@postgres:5432/hybrid_search"
 
-    # --- Redis (Phase 3 SYN-1: 同義語辞書 query expansion) -------------
-    # Architecture (`docs/01_仕様と設計.md` §中核 5 要素 + Redis 同義語辞書)
-    # 通り、Redis は Lexical 補助の同義語辞書を担う。Phase 7 SYN-1 と
-    # 同型 Port (``SynonymExpanderPort``) で接続。
-    # ``synonym_backend="redis"`` のとき ``RedisSynonymExpander`` を選択、
-    # ``"none"`` のとき ``NoopSynonymExpander`` で query_text 素通し。
+    # --- Redis (Phase 3 SYN-1: 同義語辞書 / SYN-2: レスポンスキャッシュ) -------
+    # Phase 3 の Redis は 2 つの独立した役割を持つ:
+    #   1. SYN-1 — Lexical 補助の同義語辞書 (``SynonymExpanderPort``)。
+    #              `syn:<token>` SET。BM25 recall 改善 = ranking 精度向上。
+    #   2. SYN-2 — `/search` レスポンスキャッシュ (``SearchCachePort``)。
+    #              `search:v1:<sha256>` STRING。同条件の再検索 skip = UX 改善。
+    # 2 つはキー prefix が ``syn:`` / ``search:`` で完全に分離しているため
+    # 同一 Redis instance に同居する。
     redis_url: str = "redis://redis:6379/0"
     synonym_backend: str = "redis"
     synonym_key_prefix: str = "syn:"
     synonym_max_synonyms_per_token: int = 8
+    # Phase 3 SYN-2 — search response cache.
+    # ``search_cache_backend="none"`` で完全に無効化 (= NoopSearchCache、
+    # /search は毎回 live 実行)。30-60s TTL は不動産検索の在庫変動を考慮
+    # した教材値で、本番ではログに合わせて短くしたり長くしたりする。
+    search_cache_backend: str = "redis"
+    search_cache_key_prefix: str = "search:"
+    search_cache_ttl_seconds: int = 60
 
     # --- multilingual-e5 encoder ---
     e5_model_name: str = "intfloat/multilingual-e5-small"

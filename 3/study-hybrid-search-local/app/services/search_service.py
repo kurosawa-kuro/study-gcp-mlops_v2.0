@@ -19,6 +19,7 @@ from app.services.protocols.encoder_client import EncoderClient
 from app.services.protocols.feature_fetcher import FeatureFetcher
 from app.services.protocols.ranking_log_publisher import RankingLogPublisher
 from app.services.protocols.reranker_client import RerankerClient
+from app.services.protocols.search_cache import SearchCachePort
 from app.services.protocols.synonym_expander import SynonymExpanderPort
 from app.services.ranking import run_search
 from ml.common.logging import get_logger
@@ -52,6 +53,7 @@ class SearchService:
         reranker: RerankerClient | None = None,
         feature_fetcher: FeatureFetcher | None = None,
         synonym_expander: SynonymExpanderPort | None = None,
+        search_cache: SearchCachePort | None = None,
     ) -> None:
         self._retriever_default = retriever_default
         self._encoder = encoder
@@ -63,6 +65,11 @@ class SearchService:
         # Phase 3 SYN-1: Redis 同義語辞書による lexical query expansion (Phase 7
         # SYN-1 と同型 Port)。``None`` で query_text は素通し (= Wave 1-4 既定挙動)。
         self._synonym_expander = synonym_expander
+        # Phase 3 SYN-2: Redis レスポンスキャッシュ (UX/latency)。HIT は
+        # encoder/retriever/reranker を全て skip し、ranking_log の publish も
+        # 同条件は元 MISS で済んでいるため重複を避けて skip する。``None`` で
+        # キャッシュ無効 (毎回 MISS = live search)。
+        self._search_cache = search_cache
 
     @property
     def reranker_model_path(self) -> str | None:
@@ -73,6 +80,19 @@ class SearchService:
 
         Raises :class:`SearchServiceUnavailable` when the lexical retriever
         or the encoder is missing — the HTTP handler maps to 503.
+
+        Phase 3 SYN-2 — cache short-circuit:
+
+        - Lookup ``self._search_cache`` first; on HIT, return immediately
+          with ``request_id`` overridden to the live one. The encoder /
+          retriever / reranker / publisher are all skipped (the original
+          MISS already published ``ranking_log``).
+        - On MISS, run the full pipeline; the resulting ``SearchOutput``
+          is written back into the cache before returning.
+
+        Cache failures (``get`` / ``set`` raising) are swallowed by the
+        adapter and surface as MISS / no-op respectively, so /search
+        availability is not affected.
         """
         retriever = self._retriever_default
         if retriever is None:
@@ -81,6 +101,18 @@ class SearchService:
             raise SearchServiceUnavailable(
                 "/search disabled (enable_search=False or encoder missing)"
             )
+
+        # Phase 3 SYN-2 — cache lookup. HIT short-circuits the rest of /search.
+        if self._search_cache is not None:
+            cached = self._search_cache.get(input)
+            if cached is not None:
+                logger.debug("/search cache HIT for request_id=%s", request_id)
+                return SearchOutput(
+                    request_id=request_id,
+                    items=cached.items,
+                    model_path=cached.model_path,
+                    ranked=cached.ranked,
+                )
 
         # Encoder runs on the original query — multilingual-e5 already
         # captures synonymy, expansion would dilute the embedding.
@@ -137,12 +169,20 @@ class SearchService:
         ]
         model_path = self.reranker_model_path
 
-        return SearchOutput(
+        output = SearchOutput(
             request_id=request_id,
             items=items,
             model_path=model_path,
             ranked=ranked,
         )
+
+        # Phase 3 SYN-2 — write-through. Failures in the cache adapter are
+        # swallowed; subsequent identical queries simply MISS until the
+        # backend recovers.
+        if self._search_cache is not None:
+            self._search_cache.set(input, output)
+
+        return output
 
 
 # ----------------------------------------------------------------------- helpers

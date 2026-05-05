@@ -22,9 +22,11 @@ from app.services.adapters.pgvector_semantic_search import PgVectorSemanticSearc
 from app.services.adapters.postgres_feature_fetcher import PostgresFeatureFetcher
 from app.services.adapters.postgres_feedback_recorder import PostgresFeedbackRecorder
 from app.services.adapters.postgres_ranking_log_publisher import PostgresRankingLogPublisher
+from app.services.adapters.redis_search_cache import RedisSearchCache
 from app.services.adapters.redis_synonym_expander import RedisSynonymExpander
 from app.services.feedback_service import FeedbackService
 from app.services.noop_adapters import NoopFeedbackRecorder, NoopRankingLogPublisher
+from app.services.noop_adapters.noop_search_cache import NoopSearchCache
 from app.services.noop_adapters.noop_synonym_expander import NoopSynonymExpander
 from app.services.protocols import (
     CandidateRetriever,
@@ -34,6 +36,7 @@ from app.services.protocols import (
     LexicalSearchPort,
     RankingLogPublisher,
     RerankerClient,
+    SearchCachePort,
     SemanticSearchPort,
     SynonymExpanderPort,
 )
@@ -62,6 +65,7 @@ class Container:
     ranking_log_publisher: RankingLogPublisher
     feedback_recorder: FeedbackRecorder
     synonym_expander: SynonymExpanderPort
+    search_cache: SearchCachePort
 
     # Phase 4 以降で意味を持つ表示用 model_path (reranker_client.model_path mirror)
     model_path: str | None
@@ -150,28 +154,42 @@ class ContainerBuilder:
             publisher = NoopRankingLogPublisher()
             feedback_recorder = NoopFeedbackRecorder()
 
-        # --- Synonym expander (Redis 同義語辞書, Phase 3 SYN-1) ---
-        # ``synonym_backend == "redis"`` のとき RedisSynonymExpander を選択。
-        # Redis の到達不能や package 未導入は警告のみで NoopSynonymExpander に
-        # graceful degrade。/search の可用性は常に守る。
-        synonym_expander: SynonymExpanderPort = NoopSynonymExpander()
-        if s.synonym_backend == "redis" and s.redis_url:
+        # --- Redis client (shared by Synonym + SearchCache adapters) ---
+        # Redis 1 接続を 2 つの Port adapter で共有する。Phase 3 SYN-1 と
+        # SYN-2 が同じ Docker Redis instance に同居する設計 (key prefix
+        # ``syn:`` / ``search:`` で分離)。Redis 到達不能 / package 未導入は
+        # 両 Port とも Noop に graceful degrade し /search 可用性を守る。
+        redis_client: object | None = None
+        if (s.synonym_backend == "redis" or s.search_cache_backend == "redis") and s.redis_url:
             try:
                 import redis
             except ImportError:
-                self._logger.warning("redis package unavailable; synonym expansion disabled")
+                self._logger.warning("redis package unavailable; synonym + search-cache disabled")
             else:
-                client = redis.from_url(
+                redis_client = redis.from_url(
                     s.redis_url,
                     socket_connect_timeout=2.0,
                     socket_timeout=2.0,
                     health_check_interval=30,
                 )
-                synonym_expander = RedisSynonymExpander(
-                    client=client,
-                    key_prefix=s.synonym_key_prefix,
-                    max_synonyms_per_token=s.synonym_max_synonyms_per_token,
-                )
+
+        # --- Synonym expander (Phase 3 SYN-1 = ranking 精度) ---
+        synonym_expander: SynonymExpanderPort = NoopSynonymExpander()
+        if s.synonym_backend == "redis" and redis_client is not None:
+            synonym_expander = RedisSynonymExpander(
+                client=redis_client,
+                key_prefix=s.synonym_key_prefix,
+                max_synonyms_per_token=s.synonym_max_synonyms_per_token,
+            )
+
+        # --- Search cache (Phase 3 SYN-2 = UX/latency) ---
+        search_cache: SearchCachePort = NoopSearchCache()
+        if s.search_cache_backend == "redis" and redis_client is not None:
+            search_cache = RedisSearchCache(
+                client=redis_client,
+                ttl_seconds=s.search_cache_ttl_seconds,
+                key_prefix=s.search_cache_key_prefix,
+            )
 
         # --- Services ---
         search_service = SearchService(
@@ -181,6 +199,7 @@ class ContainerBuilder:
             reranker=reranker_client,
             feature_fetcher=feature_fetcher,
             synonym_expander=synonym_expander,
+            search_cache=search_cache,
         )
         feedback_service = FeedbackService(recorder=feedback_recorder)
 
@@ -202,6 +221,7 @@ class ContainerBuilder:
             ranking_log_publisher=publisher,
             feedback_recorder=feedback_recorder,
             synonym_expander=synonym_expander,
+            search_cache=search_cache,
             model_path=model_path,
             search_service=search_service,
             feedback_service=feedback_service,
