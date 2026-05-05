@@ -32,6 +32,14 @@ class PopularitySettings(BaseModel):
     model_fqn: str
 
 
+class SynonymSettings(BaseModel):
+    backend: str  # "redis" | "none"
+    redis_url: str
+    redis_password_env: str
+    key_prefix: str
+    max_synonyms_per_token: int
+
+
 class ApiSettings(BaseAppSettings):
     # --- /search + /feedback -------------------------------------------------
     enable_search: bool = False
@@ -83,6 +91,18 @@ class ApiSettings(BaseAppSettings):
     bqml_popularity_enabled: bool = False
     bqml_popularity_model_fqn: str = ""
 
+    # --- Phase 7 SYN-1 — Redis synonym dictionary (lexical query expansion) -
+    # Architecture (`docs/architecture/01_仕様と設計.md` §2.2.1) places
+    # Redis as the synonym dictionary feeding Meilisearch BM25. Default
+    # ``synonym_backend="none"`` preserves Phase 5 / 6 behaviour; flip to
+    # ``"redis"`` and supply ``synonym_redis_url`` (Cloud Memorystore URI)
+    # via ConfigMap to enable lexical query expansion.
+    synonym_backend: str = "none"
+    synonym_redis_url: str = ""
+    synonym_redis_password_env: str = "REDIS_AUTH"
+    synonym_key_prefix: str = "syn:"
+    synonym_max_synonyms_per_token: int = 8
+
     @cached_property
     def feature_flags(self) -> FeatureFlags:
         return FeatureFlags(
@@ -112,4 +132,14 @@ class ApiSettings(BaseAppSettings):
         return PopularitySettings(
             enabled=self.bqml_popularity_enabled,
             model_fqn=self.bqml_popularity_model_fqn,
+        )
+
+    @cached_property
+    def synonym(self) -> SynonymSettings:
+        return SynonymSettings(
+            backend=self.synonym_backend,
+            redis_url=self.synonym_redis_url,
+            redis_password_env=self.synonym_redis_password_env,
+            key_prefix=self.synonym_key_prefix,
+            max_synonyms_per_token=self.synonym_max_synonyms_per_token,
         )

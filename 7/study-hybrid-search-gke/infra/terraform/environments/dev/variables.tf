@@ -227,3 +227,19 @@ variable "composer_runner_image" {
   type        = string
   default     = ""
 }
+
+# =========================================================================
+# Phase 7 SYN-1 — Redis synonym dictionary (lexical query expansion)
+# =========================================================================
+
+variable "enable_redis_synonym" {
+  description = "Provision Cloud Memorystore for Redis backing the lexical synonym dictionary (SynonymExpanderPort, Phase 7 SYN-1). Default false: ``synonym_backend=none`` keeps Phase 5/6 behaviour. Flip to true to opt in; the search-api ConfigMap then consumes ``module.redis_synonym.redis_url`` via the ``configmap_overlay`` deploy step."
+  type        = bool
+  default     = false
+}
+
+variable "redis_synonym_vpc_network" {
+  description = "VPC self-link the GKE cluster runs in (Memorystore peers via Private Service Access). Required only when ``enable_redis_synonym=true``. Example: ``projects/<project>/global/networks/default``."
+  type        = string
+  default     = ""
+}

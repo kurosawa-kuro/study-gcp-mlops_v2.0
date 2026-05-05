@@ -55,3 +55,14 @@ spec:
       ports:
         - protocol: TCP
           port: 80
+    # Phase 7 SYN-1: Cloud Memorystore for Redis (synonym dictionary).
+    # Memorystore primaries sit in the project's Private Service Access
+    # range (10.0.0.0/8 RFC1918). This rule scopes egress to the Redis
+    # default port 6379. The 0.0.0.0/0 + TCP 443 rule above already
+    # allows Secret Manager / GCP API calls that External Secrets uses.
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/8
+      ports:
+        - protocol: TCP
+          port: 6379

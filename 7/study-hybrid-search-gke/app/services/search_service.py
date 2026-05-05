@@ -20,6 +20,7 @@ from app.services.protocols.feature_fetcher import FeatureFetcher
 from app.services.protocols.popularity_scorer import PopularityScorer
 from app.services.protocols.ranking_log_publisher import RankingLogPublisher
 from app.services.protocols.reranker_client import RerankerClient
+from app.services.protocols.synonym_expander import SynonymExpanderPort
 from app.services.ranking import run_search
 from ml.common.logging import get_logger
 
@@ -50,6 +51,7 @@ class SearchService:
         reranker: RerankerClient | None = None,
         popularity_scorer: PopularityScorer | None = None,
         feature_fetcher: FeatureFetcher | None = None,
+        synonym_expander: SynonymExpanderPort | None = None,
     ) -> None:
         self._retriever_default = retriever_default
         self._encoder = encoder
@@ -59,6 +61,10 @@ class SearchService:
         # Phase 7 PR-4 — opt-in fresh feature fetch (e.g. Vertex AI Feature
         # Online Store). ``None`` preserves Phase 5 / 6 behaviour exactly.
         self._feature_fetcher = feature_fetcher
+        # Phase 7 SYN-1 — opt-in lexical query expansion via Redis synonym
+        # dictionary (Cloud Memorystore). ``None`` keeps the original query
+        # text unchanged on the lexical side, matching Phase 5 / 6 default.
+        self._synonym_expander = synonym_expander
 
     @property
     def reranker_model_path(self) -> str | None:
@@ -78,12 +84,22 @@ class SearchService:
                 "/search disabled (enable_search=False or encoder missing)"
             )
 
+        # Encoder runs on the original query — embedding model already
+        # captures synonymy, expansion would dilute the vector.
         query_vector = self._encoder.embed(input.query, "query")
+        # Lexical side gets the expanded query when a synonym backend is
+        # wired; falls back to the original query when expander is None or
+        # the backend errors (RedisSynonymExpander swallows failures).
+        lexical_query = (
+            self._synonym_expander.expand(input.query)
+            if self._synonym_expander is not None
+            else input.query
+        )
         ranked: list[RankedCandidate] = run_search(
             retriever=retriever,
             publisher=self._publisher,
             request_id=request_id,
-            query_text=input.query,
+            query_text=lexical_query,
             query_vector=query_vector,
             filters=input.filters,
             top_k=input.top_k,

@@ -22,8 +22,10 @@ from app.services.adapters.pgvector_semantic_search import PgVectorSemanticSearc
 from app.services.adapters.postgres_feature_fetcher import PostgresFeatureFetcher
 from app.services.adapters.postgres_feedback_recorder import PostgresFeedbackRecorder
 from app.services.adapters.postgres_ranking_log_publisher import PostgresRankingLogPublisher
+from app.services.adapters.redis_synonym_expander import RedisSynonymExpander
 from app.services.feedback_service import FeedbackService
 from app.services.noop_adapters import NoopFeedbackRecorder, NoopRankingLogPublisher
+from app.services.noop_adapters.noop_synonym_expander import NoopSynonymExpander
 from app.services.protocols import (
     CandidateRetriever,
     EncoderClient,
@@ -33,6 +35,7 @@ from app.services.protocols import (
     RankingLogPublisher,
     RerankerClient,
     SemanticSearchPort,
+    SynonymExpanderPort,
 )
 from app.services.search_service import SearchService
 from app.settings import ApiSettings
@@ -58,6 +61,7 @@ class Container:
     feature_fetcher: FeatureFetcher | None
     ranking_log_publisher: RankingLogPublisher
     feedback_recorder: FeedbackRecorder
+    synonym_expander: SynonymExpanderPort
 
     # Phase 4 以降で意味を持つ表示用 model_path (reranker_client.model_path mirror)
     model_path: str | None
@@ -146,6 +150,29 @@ class ContainerBuilder:
             publisher = NoopRankingLogPublisher()
             feedback_recorder = NoopFeedbackRecorder()
 
+        # --- Synonym expander (Redis 同義語辞書, Phase 3 SYN-1) ---
+        # ``synonym_backend == "redis"`` のとき RedisSynonymExpander を選択。
+        # Redis の到達不能や package 未導入は警告のみで NoopSynonymExpander に
+        # graceful degrade。/search の可用性は常に守る。
+        synonym_expander: SynonymExpanderPort = NoopSynonymExpander()
+        if s.synonym_backend == "redis" and s.redis_url:
+            try:
+                import redis
+            except ImportError:
+                self._logger.warning("redis package unavailable; synonym expansion disabled")
+            else:
+                client = redis.from_url(
+                    s.redis_url,
+                    socket_connect_timeout=2.0,
+                    socket_timeout=2.0,
+                    health_check_interval=30,
+                )
+                synonym_expander = RedisSynonymExpander(
+                    client=client,
+                    key_prefix=s.synonym_key_prefix,
+                    max_synonyms_per_token=s.synonym_max_synonyms_per_token,
+                )
+
         # --- Services ---
         search_service = SearchService(
             retriever_default=candidate_retriever,
@@ -153,6 +180,7 @@ class ContainerBuilder:
             publisher=publisher,
             reranker=reranker_client,
             feature_fetcher=feature_fetcher,
+            synonym_expander=synonym_expander,
         )
         feedback_service = FeedbackService(recorder=feedback_recorder)
 
@@ -173,6 +201,7 @@ class ContainerBuilder:
             feature_fetcher=feature_fetcher,
             ranking_log_publisher=publisher,
             feedback_recorder=feedback_recorder,
+            synonym_expander=synonym_expander,
             model_path=model_path,
             search_service=search_service,
             feedback_service=feedback_service,

@@ -205,3 +205,17 @@ output "composer_environment_name" {
   description = "Composer environment name (used by `gcloud composer environments run --environment=<name>`)."
   value       = module.composer.environment_name
 }
+
+# =========================================================================
+# Phase 7 SYN-1 — Redis synonym dictionary outputs
+# =========================================================================
+
+output "synonym_redis_url" {
+  description = "redis:// URL of the Cloud Memorystore primary backing the synonym dictionary (empty when ``enable_redis_synonym=false``). Pushed into the search-api ConfigMap as ``SYNONYM_REDIS_URL``."
+  value       = var.enable_redis_synonym ? module.redis_synonym[0].redis_url : ""
+}
+
+output "synonym_redis_auth_secret_id" {
+  description = "Secret Manager secret ID holding the Memorystore AUTH string (External Secrets Operator mirrors it to the ``REDIS_AUTH`` env in the search-api Pod)."
+  value       = var.enable_redis_synonym ? module.redis_synonym[0].auth_secret_id : ""
+}

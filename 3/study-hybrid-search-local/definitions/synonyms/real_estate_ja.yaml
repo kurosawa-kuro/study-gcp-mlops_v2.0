@@ -1,0 +1,106 @@
+# Phase 3 SYN-1 — Synonym dictionary for real-estate hybrid search.
+#
+# Schema: each top-level key is a *canonical token* the user might type.
+# The list value is the set of synonyms loaded into Redis as a SET under
+# the key ``syn:<token>``. ``RedisSynonymExpander`` then injects the union
+# of original tokens + synonyms into the lexical query before BM25.
+#
+# Why dictionary rather than embedding nearest-neighbour?
+# Lexical query expansion lives upstream of BM25 — Meilisearch does not see
+# semantics. We want a curated, deterministic list of property-domain
+# synonyms (housing types, layouts, station-distance idioms, amenities)
+# that a real-estate operator can audit and edit. The semantic side
+# already covers free-form synonymy via multilingual-e5.
+#
+# Editorial guidance:
+# - Keep entries to property-domain vocabulary.
+# - Avoid entries that change meaning (e.g. ``南向き`` → ``東向き``).
+# - Avoid runaway expansion: cap each list at ~8 synonyms; the
+#   ``synonym_max_synonyms_per_token`` setting truncates further at the
+#   adapter boundary.
+# - Free of regional bias unless the locality is unambiguous.
+
+# --- 物件タイプ ----------------------------------------------------------
+マンション:
+  - アパート
+  - 共同住宅
+  - 集合住宅
+アパート:
+  - マンション
+  - 共同住宅
+戸建:
+  - 一戸建て
+  - 戸建て
+  - 一軒家
+  - 一戸建
+ハイツ:
+  - アパート
+  - コーポ
+コーポ:
+  - アパート
+  - ハイツ
+
+# --- 間取り (バリエーション吸収) -----------------------------------------
+1K:
+  - ワンルーム
+  - 1R
+1R:
+  - ワンルーム
+  - 1K
+ワンルーム:
+  - 1R
+  - 1K
+1LDK:
+  - 1DK
+2LDK:
+  - 2DK
+  - 2部屋
+3LDK:
+  - 3DK
+  - 3部屋
+
+# --- 駅距離 / アクセス ---------------------------------------------------
+駅近:
+  - 駅徒歩
+  - 駅から徒歩
+  - 駅チカ
+  - アクセス良好
+徒歩:
+  - 駅徒歩
+  - 駅から徒歩
+アクセス:
+  - 交通利便
+  - 利便性
+
+# --- 設備 / 条件 ---------------------------------------------------------
+ペット可:
+  - ペット相談
+  - ペット相談可
+  - 猫可
+  - 犬可
+ペット相談:
+  - ペット可
+  - ペット相談可
+オートロック:
+  - セキュリティ
+宅配ボックス:
+  - 宅配BOX
+
+# --- 環境ワード ----------------------------------------------------------
+静か:
+  - 閑静
+  - 静かな
+閑静:
+  - 静か
+  - 静かな住宅街
+南向き:
+  - 日当たり良好
+  - 採光良好
+リフォーム:
+  - リノベーション
+  - リノベ
+新築:
+  - 築浅
+築浅:
+  - 新築
+  - 築年数浅

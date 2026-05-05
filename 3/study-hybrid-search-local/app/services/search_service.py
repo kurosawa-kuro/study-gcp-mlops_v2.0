@@ -19,6 +19,7 @@ from app.services.protocols.encoder_client import EncoderClient
 from app.services.protocols.feature_fetcher import FeatureFetcher
 from app.services.protocols.ranking_log_publisher import RankingLogPublisher
 from app.services.protocols.reranker_client import RerankerClient
+from app.services.protocols.synonym_expander import SynonymExpanderPort
 from app.services.ranking import run_search
 from ml.common.logging import get_logger
 
@@ -50,6 +51,7 @@ class SearchService:
         publisher: RankingLogPublisher,
         reranker: RerankerClient | None = None,
         feature_fetcher: FeatureFetcher | None = None,
+        synonym_expander: SynonymExpanderPort | None = None,
     ) -> None:
         self._retriever_default = retriever_default
         self._encoder = encoder
@@ -58,6 +60,9 @@ class SearchService:
         # Phase 3: Postgres feature_mart_property_features_daily を直接 SELECT する
         # ``PostgresFeatureFetcher`` を渡す想定。``None`` で disabled。
         self._feature_fetcher = feature_fetcher
+        # Phase 3 SYN-1: Redis 同義語辞書による lexical query expansion (Phase 7
+        # SYN-1 と同型 Port)。``None`` で query_text は素通し (= Wave 1-4 既定挙動)。
+        self._synonym_expander = synonym_expander
 
     @property
     def reranker_model_path(self) -> str | None:
@@ -77,12 +82,22 @@ class SearchService:
                 "/search disabled (enable_search=False or encoder missing)"
             )
 
+        # Encoder runs on the original query — multilingual-e5 already
+        # captures synonymy, expansion would dilute the embedding.
         query_vector = self._encoder.embed(input.query, "query")
+        # Lexical side gets the expanded query when a synonym backend is
+        # wired; falls back to the original query if expander is None or
+        # the backend errors (RedisSynonymExpander swallows failures).
+        lexical_query = (
+            self._synonym_expander.expand(input.query)
+            if self._synonym_expander is not None
+            else input.query
+        )
         ranked: list[RankedCandidate] = run_search(
             retriever=retriever,
             publisher=self._publisher,
             request_id=request_id,
-            query_text=input.query,
+            query_text=lexical_query,
             query_vector=query_vector,
             filters=input.filters,
             top_k=input.top_k,

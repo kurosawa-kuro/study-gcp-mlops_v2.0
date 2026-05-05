@@ -120,6 +120,34 @@ spec:
                 configMapKeyRef:
                   name: search-api-config
                   key: vertex_feature_online_store_endpoint
+            # =================================================================
+            # Phase 7 SYN-1: Redis 同義語辞書 (lexical query expansion)。
+            # ``synonym_backend`` が `none` のとき URL 空 → ``NoopSynonymExpander``
+            # が選択され、Phase 5 / 6 と同等挙動。Cloud Memorystore を有効化
+            # するには Terraform で ``enable_redis_synonym=true`` にし、
+            # ``configmap_overlay`` step が ``synonym_redis_url`` を ConfigMap
+            # に流し込む。AUTH 文字列は Memorystore が生成 → Secret Manager に
+            # ミラー → External Secrets Operator が ``synonym-redis-auth``
+            # Secret として `search` namespace に配信する。
+            # =================================================================
+            - name: SYNONYM_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: synonym_backend
+                  optional: true
+            - name: SYNONYM_REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: search-api-config
+                  key: synonym_redis_url
+                  optional: true
+            - name: REDIS_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: synonym-redis-auth
+                  key: REDIS_AUTH
+                  optional: true
           startupProbe:
             httpGet:
               path: /livez

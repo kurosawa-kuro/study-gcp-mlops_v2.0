@@ -59,8 +59,12 @@ wait-db: ## postgres healthcheck PASS まで待つ
 	done; \
 	echo " timeout"; exit 1
 
-seed: ## synthetic 不動産データ → PostgreSQL + Meilisearch + pgvector
+seed: ## synthetic 不動産データ + 同義語辞書 を全 backend に投入
 	$(COMPOSE) run --rm seed
+	$(MAKE) seed-synonyms
+
+seed-synonyms: ## 同義語辞書 → Redis SET (lexical query expansion 用)
+	$(COMPOSE) run --rm seed-synonyms
 
 train: ## LightGBM LambdaRank 学習 → ml/registry/artifacts/{run_id}/model.lgb
 	$(COMPOSE) run --rm trainer

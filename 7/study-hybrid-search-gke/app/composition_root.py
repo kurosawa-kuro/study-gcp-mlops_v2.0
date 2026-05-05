@@ -160,6 +160,7 @@ class ContainerBuilder:
             reranker=search.reranker_client,
             popularity_scorer=ml.popularity_scorer,
             feature_fetcher=feature_fetcher,
+            synonym_expander=infra.synonym_expander,
         )
         feedback_service = FeedbackService(recorder=infra.feedback_recorder)
         model_metrics_service = ModelMetricsService(

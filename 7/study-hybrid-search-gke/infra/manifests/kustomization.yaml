@@ -11,6 +11,7 @@ resources:
   - search-api/configmap.example.yaml
   - search-api/secretstore.yaml
   - search-api/meili-master-key-externalsecret.yaml
+  - search-api/synonym-redis-auth-externalsecret.yaml
   - search-api/iap-oauth-client-secret-externalsecret.yaml
   # KServe InferenceService
   - kserve/encoder.yaml

@@ -173,6 +173,22 @@ module "meilisearch" {
   depends_on = [google_project_service.enabled, module.data]
 }
 
+# Phase 7 SYN-1 — Redis-backed synonym dictionary (lexical query expansion).
+# Disabled by default; flip ``enable_redis_synonym=true`` (variables.tf) +
+# supply ``vpc_network`` to provision Cloud Memorystore. The search-api
+# ConfigMap consumes ``module.redis_synonym.redis_url`` via the
+# ``configmap_overlay`` deploy step.
+module "redis_synonym" {
+  count  = var.enable_redis_synonym ? 1 : 0
+  source = "../../modules/redis_synonym"
+
+  project_id  = var.project_id
+  region      = var.region
+  vpc_network = var.redis_synonym_vpc_network
+
+  depends_on = [google_project_service.enabled]
+}
+
 module "monitoring" {
   source = "../../modules/monitoring"
 

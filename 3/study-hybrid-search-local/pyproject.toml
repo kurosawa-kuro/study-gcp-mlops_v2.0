@@ -29,6 +29,8 @@ dependencies = [
     "sentence-transformers>=3.0",
     # --- seed dataset 生成 ---
     "scikit-learn>=1.5",
+    # --- 同義語辞書 seed 用 (pipeline.data_job.components.sync_synonyms) ---
+    "pyyaml>=6.0",
 ]
 
 [project.scripts]
@@ -51,6 +53,7 @@ dev = [
     "mypy>=1.11",
     "types-cachetools",
     "types-redis",
+    "types-pyyaml",
     "pandas-stubs",
     # httpx powers fastapi.testclient (starlette); needed by tests/unit/app.
     "httpx>=0.27",

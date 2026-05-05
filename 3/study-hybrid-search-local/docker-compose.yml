@@ -74,6 +74,28 @@ services:
         condition: service_healthy
     command: ["python", "-m", "pipeline.data_job.main"]
 
+  # Phase 3 SYN-1 — Redis 同義語辞書 (lexical query expansion) を Redis に投入。
+  # ``make seed`` の延長で実行 (postgres / meili 投入の後)。redis container は
+  # 永続 volume を持たないので、container 再起動の度に流し直す前提。
+  seed-synonyms:
+    build:
+      context: .
+      dockerfile: infra/run/jobs/pipeline/Dockerfile
+    container_name: phase3-seed-synonyms
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    command:
+      - "python"
+      - "-m"
+      - "pipeline.data_job.components.sync_synonyms"
+      - "--redis-url"
+      - "redis://redis:6379/0"
+      - "--dictionary"
+      - "definitions/synonyms/real_estate_ja.yaml"
+
   trainer:
     build:
       context: .
@@ -119,6 +141,11 @@ services:
       E5_MODEL_NAME: ${E5_MODEL_NAME:-intfloat/multilingual-e5-small}
       MODEL_ARTIFACTS_ROOT: /app/ml/registry/artifacts
       ENABLE_SEARCH: "true"
+      # Phase 3 SYN-1 — Redis 同義語辞書を有効化。
+      # ``synonym_backend=none`` にすれば素通し (NoopSynonymExpander)。
+      SYNONYM_BACKEND: "redis"
+      SYNONYM_KEY_PREFIX: "syn:"
+      SYNONYM_MAX_SYNONYMS_PER_TOKEN: "8"
     ports:
       - "8000:8000"
     volumes:

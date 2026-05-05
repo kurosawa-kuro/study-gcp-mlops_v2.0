@@ -12,6 +12,7 @@ from .ranking_log_publisher import RankingLogPublisher
 from .reranker_client import RerankerClient, RerankerExplainer
 from .retrain_queries import RetrainQueries
 from .semantic_search import SemanticSearchPort
+from .synonym_expander import SynonymExpanderPort
 
 __all__ = [
     "CandidateRetriever",
@@ -29,4 +30,5 @@ __all__ = [
     "RerankerExplainer",
     "RetrainQueries",
     "SemanticSearchPort",
+    "SynonymExpanderPort",
 ]
