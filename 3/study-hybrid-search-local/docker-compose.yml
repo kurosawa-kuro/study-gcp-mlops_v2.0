@@ -9,8 +9,11 @@ services:
       POSTGRES_DB: hybrid_search
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    # host port は 5433 にずらす (5432 を使う他プロジェクトとの衝突回避)。
+    # container 間通信は名前解決 (postgres:5432) で行うので影響なし。
+    # host から psql で接続したい場合は localhost:5433 を使う。
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./definitions/postgres/migrations:/docker-entrypoint-initdb.d:ro
