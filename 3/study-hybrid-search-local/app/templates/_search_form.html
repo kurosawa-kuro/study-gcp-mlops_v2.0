@@ -1,0 +1,57 @@
+<article class="panel admin-card">
+  <div class="admin-card__body">
+  <div class="admin-section-heading">
+    <div>
+      <p class="eyebrow">Search Form</p>
+      <h2>条件を指定して検索</h2>
+    </div>
+    <p class="section-copy">自由文とフィルタを組み合わせて、物件候補の上位を取得します。</p>
+  </div>
+  <form id="search-form" class="search-form" onsubmit="event.preventDefault();">
+    <label>
+      自由文クエリ
+      <input id="q-query" type="text" value="{{ default_query }}" required>
+    </label>
+    <div class="grid">
+      <label>
+        家賃上限 (円)
+        <input id="q-max-rent" type="number" min="0" step="10000" value="{{ default_max_rent }}">
+      </label>
+      <label>
+        間取り
+        <input id="q-layout" type="text" placeholder="例: 1LDK">
+      </label>
+      <label>
+        上位件数 (top_k)
+        <input id="q-top-k" type="number" min="1" max="100" value="{{ default_top_k }}">
+      </label>
+    </div>
+    <div class="grid">
+      <label>
+        駅徒歩上限 (分)
+        <input id="q-max-walk-min" type="number" min="0" step="1" placeholder="例: 10">
+      </label>
+      <label>
+        築年数上限
+        <input id="q-max-age" type="number" min="0" step="1" placeholder="例: 15">
+      </label>
+      <label class="toggle-wrap">
+        <input id="q-pet-ok" type="checkbox">
+        <span>ペット可のみ</span>
+      </label>
+    </div>
+    {% if page_mode == "dev" %}
+      <fieldset class="dev-controls">
+        <label class="toggle-wrap">
+          <input id="q-explain" type="checkbox">
+          <span>寄与度 (attributions) を取得</span>
+        </label>
+      </fieldset>
+    {% endif %}
+    <div class="action-row">
+      <button type="submit" id="search-btn">検索する</button>
+      <p id="search-state" class="search-state">入力後に検索を実行してください。</p>
+    </div>
+  </form>
+  </div>
+</article>

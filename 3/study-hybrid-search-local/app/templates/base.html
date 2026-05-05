@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ハイブリッド検索 UI (Phase 3 Local){% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/pico-admin-pico.css">
+  <link rel="stylesheet" href="/static/css/pico-admin-theme.css">
+  <link rel="stylesheet" href="/static/css/pico-admin-layout.css">
+  <link rel="stylesheet" href="/static/css/pico-admin-components.css">
+  <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body class="admin-body" data-sidebar-open="false">
+<button class="admin-mobile-toggle secondary" type="button" data-sidebar-toggle>メニュー</button>
+<div class="admin-sidebar-backdrop" data-sidebar-backdrop></div>
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar__inner">
+      <div class="admin-brand">
+        <div class="admin-brand__mark">H</div>
+        <div>
+          <strong>Hybrid Search</strong>
+          <div class="admin-brand__eyebrow">Phase 3 · Local Docker Compose</div>
+        </div>
+        <button class="secondary" type="button" data-sidebar-close>閉じる</button>
+      </div>
+
+      <nav class="admin-nav">
+        <details open>
+          <summary>Search</summary>
+          <ul>
+            <li><a class="admin-nav-item" href="/ui/" {% if active == 'search-user' %}aria-current="page"{% endif %}>不動産検索</a></li>
+            <li><a class="admin-nav-item admin-nav-item--docs" href="/docs">API Docs ↗</a></li>
+          </ul>
+        </details>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-header app-header">
+      <div>
+        <div class="admin-eyebrow">Hybrid Search Console</div>
+        <h1 class="app-header__title">{% block page_title %}不動産ハイブリッド検索{% endblock %}</h1>
+        <p class="app-header__copy">{% block page_copy %}Meilisearch BM25 + multilingual-e5 + pgvector + RRF + LightGBM LambdaRank の 3 段検索を Local Docker Compose で動かしています。{% endblock %}</p>
+      </div>
+      <div class="admin-header__actions">
+        <button class="secondary admin-user-chip" type="button" aria-label="現在のテーマ">
+          <span class="admin-avatar" aria-hidden="true">H</span>
+          <span class="admin-user__meta">
+            <strong>Phase 3</strong>
+            <small>Local</small>
+          </span>
+          <span class="admin-user-chip__caret" aria-hidden="true">▾</span>
+        </button>
+      </div>
+    </header>
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script>
+  (() => {
+    const body = document.body;
+    const open = () => body.setAttribute("data-sidebar-open", "true");
+    const close = () => body.setAttribute("data-sidebar-open", "false");
+    document.querySelector("[data-sidebar-toggle]")?.addEventListener("click", open);
+    document.querySelector("[data-sidebar-backdrop]")?.addEventListener("click", close);
+    document.querySelector("[data-sidebar-close]")?.addEventListener("click", close);
+  })();
+</script>
+</body>
+</html>

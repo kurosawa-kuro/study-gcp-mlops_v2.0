@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}一般向け検索 · ハイブリッド検索 UI{% endblock %}
+{% block page_title %}一般向け検索{% endblock %}
+{% block page_copy %}自然文と基本フィルタだけで、候補物件をカード形式で比較する検索画面です。{% endblock %}
+
+{% block content %}
+  <section id="search-app" class="admin-content search-shell" data-page-mode="user">
+    {% include "_search_form.html" %}
+    {% include "_search_results.html" %}
+  </section>
+
+  <script src="/static/js/search_ui.js"></script>
+  <script>
+    window.HybridSearchUI.init({
+      rootId: "search-app",
+      mode: "user",
+    });
+  </script>
+{% endblock %}
